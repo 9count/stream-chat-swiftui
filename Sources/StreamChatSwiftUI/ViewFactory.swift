@@ -219,6 +219,10 @@ public protocol ViewFactory: AnyObject {
     /// Returns a function that creats the message thread destination.
     func makeMessageThreadDestination() -> (ChatChannel, ChatMessage) -> MessageThreadDestination
 
+    associatedtype InitialMessageViewType: View
+
+    func makeInitialMessageView(channel: ChatChannel) -> InitialMessageViewType
+
     associatedtype EmptyMessagesViewType: View
     /// Returns a view shown when there are no messages in a channel.
     /// - Parameters:

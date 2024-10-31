@@ -207,7 +207,10 @@ extension ViewFactory {
     }
     
     // MARK: messages
-    
+    public func makeInitialMessageView(channel: ChatChannel) -> some View {
+        EmptyView()
+    }
+
     public func makeChannelDestination() -> (ChannelSelectionInfo) -> ChatChannelView<Self> {
         { [unowned self] selectionInfo in
             let controller = InjectedValues[\.utils]

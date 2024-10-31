@@ -206,6 +206,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     .delayedRendering()
                     .modifier(factory.makeMessageListModifier())
                     .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
+
+                    factory.makeInitialMessageView(channel: channel)
+                        .flippedUpsideDown()
                 }
                 .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil)))
                 .background(
