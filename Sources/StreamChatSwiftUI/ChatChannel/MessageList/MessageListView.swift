@@ -341,7 +341,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
             return true
         }
         let groupInfo = messagesGroupingInfo[message.id] ?? []
-        return groupInfo.contains(firstMessageKey) == true
+        return groupInfo.contains(lastMessageKey) == true
     }
 
     private func showsLastInGroupInfo(
