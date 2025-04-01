@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -40,6 +40,7 @@ public struct PollAttachmentView<Factory: ViewFactory>: View {
                 HStack {
                     Text(poll.name)
                         .font(fonts.bodyBold)
+                        .foregroundColor(textColor(for: message))
                     Spacer()
                 }
                 
@@ -54,9 +55,11 @@ public struct PollAttachmentView<Factory: ViewFactory>: View {
             ForEach(options.prefix(PollAttachmentViewModel.numberOfVisibleOptionsShown)) { option in
                 PollOptionView(
                     viewModel: viewModel,
+                    factory: factory,
                     option: option,
                     optionVotes: poll.voteCount(for: option),
-                    maxVotes: poll.currentMaximumVoteCount
+                    maxVotes: poll.currentMaximumVoteCount,
+                    textColor: textColor(for: message)
                 )
                 .layoutPriority(1) // do not compress long text
             }
@@ -71,7 +74,7 @@ public struct PollAttachmentView<Factory: ViewFactory>: View {
                     )
                 }
                 .fullScreenCover(isPresented: $viewModel.allOptionsShown) {
-                    PollAllOptionsView(viewModel: viewModel)
+                    PollAllOptionsView(viewModel: viewModel, factory: factory)
                 }
             }
             
@@ -113,7 +116,7 @@ public struct PollAttachmentView<Factory: ViewFactory>: View {
                     Text(L10n.Message.Polls.Button.viewNumberOfComments(viewModel.poll.answersCount))
                 }
                 .fullScreenCover(isPresented: $viewModel.allCommentsShown) {
-                    PollCommentsView(poll: viewModel.poll, pollController: viewModel.pollController)
+                    PollCommentsView(factory: factory, poll: viewModel.poll, pollController: viewModel.pollController)
                 }
             }
             
@@ -123,7 +126,7 @@ public struct PollAttachmentView<Factory: ViewFactory>: View {
                 Text(L10n.Message.Polls.Button.viewResults)
             }
             .fullScreenCover(isPresented: $viewModel.pollResultsShown) {
-                PollResultsView(viewModel: viewModel)
+                PollResultsView(viewModel: viewModel, factory: factory)
             }
             
             if viewModel.showEndVoteButton {
@@ -180,14 +183,16 @@ public struct PollAttachmentView<Factory: ViewFactory>: View {
 
 extension PollOption: Identifiable {}
 
-struct PollOptionView: View {
+struct PollOptionView<Factory: ViewFactory>: View {
     
     @ObservedObject var viewModel: PollAttachmentViewModel
     
+    let factory: Factory
     let option: PollOption
     var optionFont: Font = InjectedValues[\.fonts].body
     var optionVotes: Int?
     var maxVotes: Int?
+    var textColor: Color
     /// If true, only option name and vote count is shown, otherwise votes indicator and avatars appear as well.
     var alternativeStyle: Bool = false
     /// The spacing between the checkbox and the option name.
@@ -211,20 +216,26 @@ struct PollOptionView: View {
                 HStack(alignment: .top) {
                     Text(option.text)
                         .font(optionFont)
+                        .foregroundColor(textColor)
                     Spacer()
                     if !alternativeStyle, viewModel.showVoterAvatars {
                         HStack(spacing: -4) {
                             ForEach(
                                 option.latestVotes.prefix(2)
                             ) { vote in
-                                MessageAvatarView(
-                                    avatarURL: vote.user?.imageURL,
-                                    size: .init(width: 20, height: 20)
+                                factory.makeMessageAvatarView(
+                                    for: UserDisplayInfo(
+                                        id: vote.user?.id ?? "",
+                                        name: vote.user?.name ?? "",
+                                        imageURL: vote.user?.imageURL,
+                                        size: .init(width: 20, height: 20)
+                                    )
                                 )
                             }
                         }
                     }
                     Text("\(viewModel.poll.voteCountsByOption?[option.id] ?? 0)")
+                        .foregroundColor(textColor)
                 }
                 if !alternativeStyle {
                     PollVotesIndicatorView(

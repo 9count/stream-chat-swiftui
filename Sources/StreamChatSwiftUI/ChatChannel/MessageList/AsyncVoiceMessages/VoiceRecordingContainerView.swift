@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -39,33 +39,40 @@ public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
     }
     
     public var body: some View {
-        VStack {
-            if let quotedMessage = utils.messageCachingUtils.quotedMessage(for: message) {
-                factory.makeQuotedMessageView(
-                    quotedMessage: quotedMessage,
-                    fillAvailableSpace: !message.attachmentCounts.isEmpty,
-                    isInComposer: false,
-                    scrolledId: $scrolledId
-                )
-            }
-            
-            ForEach(message.voiceRecordingAttachments, id: \.self) { attachment in
-                VoiceRecordingView(
-                    handler: handler,
-                    addedVoiceRecording: AddedVoiceRecording(
-                        url: attachment.payload.voiceRecordingURL,
-                        duration: attachment.payload.duration ?? 0,
-                        waveform: attachment.payload.waveformData ?? []
-                    ),
-                    index: index(for: attachment)
-                )
+        VStack(spacing: 0) {
+            VStack {
+                if let quotedMessage = message.quotedMessage {
+                    factory.makeQuotedMessageView(
+                        quotedMessage: quotedMessage,
+                        fillAvailableSpace: !message.attachmentCounts.isEmpty,
+                        isInComposer: false,
+                        scrolledId: $scrolledId
+                    )
+                }
+                VStack(spacing: 2) {
+                    ForEach(message.voiceRecordingAttachments, id: \.self) { attachment in
+                        VoiceRecordingView(
+                            handler: handler,
+                            textColor: textColor(for: message),
+                            addedVoiceRecording: AddedVoiceRecording(
+                                url: attachment.payload.voiceRecordingURL,
+                                duration: attachment.payload.duration ?? 0,
+                                waveform: attachment.payload.waveformData ?? []
+                            ),
+                            index: index(for: attachment)
+                        )
+                        .padding(.all, 8)
+                        .background(Color(colors.background8))
+                        .roundWithBorder(cornerRadius: 14)
+                    }
+                }
             }
             if !message.text.isEmpty {
                 AttachmentTextView(message: message)
                     .frame(maxWidth: .infinity)
-                    .cornerRadius(16)
             }
         }
+        .padding(.all, 2)
         .onReceive(handler.$context, perform: { value in
             guard message.voiceRecordingAttachments.count > 1 else { return }
             if value.state == .playing {
@@ -87,13 +94,13 @@ public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
         .onAppear {
             player.subscribe(handler)
         }
-        .padding(.all, 8)
-        .background(Color(colors.background))
-        .cornerRadius(16)
-        .padding(.all, 4)
         .modifier(
             factory.makeMessageViewModifier(
-                for: MessageModifierInfo(message: message, isFirst: isFirst)
+                for: MessageModifierInfo(
+                    message: message,
+                    isFirst: isFirst,
+                    cornerRadius: 16
+                )
             )
         )
     }
@@ -113,6 +120,7 @@ struct VoiceRecordingView: View {
     @State var rate: AudioPlaybackRate = .normal
     @ObservedObject var handler: VoiceRecordingHandler
     
+    let textColor: Color
     let addedVoiceRecording: AddedVoiceRecording
     let index: Int
     
@@ -134,10 +142,17 @@ struct VoiceRecordingView: View {
             Button(action: {
                 handlePlayTap()
             }, label: {
-                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                    .padding(.all, 8)
+                Image(uiImage: isPlaying ? images.pauseFilled : images.playFilled)
+                    .frame(width: 36, height: 36)
                     .foregroundColor(.primary)
-                    .modifier(ShadowViewModifier(firstRadius: 2, firstY: 4))
+                    .modifier(
+                        ShadowViewModifier(
+                            backgroundColor: colors.voiceMessageControlBackground,
+                            cornerRadius: 18,
+                            firstRadius: 2,
+                            firstY: 4
+                        )
+                    )
             })
                 .opacity(loading ? 0 : 1)
                 .overlay(loading ? ProgressView() : nil)
@@ -151,6 +166,7 @@ struct VoiceRecordingView: View {
                 )
                 .bold()
                 .lineLimit(1)
+                .foregroundColor(textColor)
                 
                 HStack {
                     RecordingDurationView(
@@ -198,7 +214,8 @@ struct VoiceRecordingView: View {
                 Image(uiImage: images.fileAac)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(height: 36)
+                    .frame(height: 40)
+                    .accessibilityHidden(true)
             }
         }
         .onReceive(handler.$context, perform: { value in

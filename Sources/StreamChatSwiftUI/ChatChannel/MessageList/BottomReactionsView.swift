@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -94,6 +94,9 @@ struct BottomReactionsView: View {
                     }
                     .onLongPressGesture {
                         onLongPress()
+                    }
+                    .accessibilityAction {
+                        viewModel.reactionTapped(reaction)
                     }
                 }
             }

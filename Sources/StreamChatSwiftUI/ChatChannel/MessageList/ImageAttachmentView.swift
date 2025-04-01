@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -7,7 +7,6 @@ import SwiftUI
 
 public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
     @Injected(\.colors) private var colors
-    @Injected(\.utils) private var utils
 
     var factory: Factory
     let message: ChatMessage
@@ -31,7 +30,7 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
             alignment: message.alignmentInBubble,
             spacing: 0
         ) {
-            if let quotedMessage = utils.messageCachingUtils.quotedMessage(for: message) {
+            if let quotedMessage = message.quotedMessage {
                 factory.makeQuotedMessageView(
                     quotedMessage: quotedMessage,
                     fillAvailableSpace: !message.attachmentCounts.isEmpty,
@@ -118,9 +117,11 @@ public struct AttachmentTextView: View {
     @Injected(\.fonts) private var fonts
 
     var message: ChatMessage
+    let injectedBackgroundColor: UIColor?
 
-    public init(message: ChatMessage) {
+    public init(message: ChatMessage, injectedBackgroundColor: UIColor? = nil) {
         self.message = message
+        self.injectedBackgroundColor = injectedBackgroundColor
     }
 
     public var body: some View {
@@ -135,6 +136,9 @@ public struct AttachmentTextView: View {
     }
 
     private var backgroundColor: UIColor {
+        if let injectedBackgroundColor {
+            return injectedBackgroundColor
+        }
         var colors = colors
         if message.isSentByCurrentUser {
             if message.type == .ephemeral {
@@ -375,6 +379,11 @@ struct LazyLoadingImage: View {
                                     imageTapped(index ?? 0)
                                 }
                         )
+                        .accessibilityLabel(L10n.Message.Attachment.accessibilityLabel((index ?? 0) + 1))
+                        .accessibilityAddTraits(source.type == .video ? .startsMediaSession : .isImage)
+                        .accessibilityAction {
+                            imageTapped(index ?? 0)
+                        }
                 }
             } else if error != nil {
                 Color(.secondarySystemBackground)
@@ -387,6 +396,7 @@ struct LazyLoadingImage: View {
             
             if source.type == .video && width > 64 && source.uploadingState == nil {
                 VideoPlayIcon()
+                    .accessibilityHidden(true)
             }
         }
         .onAppear {
@@ -418,6 +428,7 @@ struct LazyLoadingImage: View {
             .allowsHitTesting(false)
             .scaleEffect(1.0001) // Needed because of SwiftUI sometimes incorrectly displaying landscape images.
             .clipped()
+            .accessibilityHidden(true)
     }
 }
 

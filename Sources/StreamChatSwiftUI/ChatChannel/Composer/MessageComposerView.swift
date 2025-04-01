@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -20,7 +20,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
     private var channelConfig: ChannelConfig?
     @Binding var quotedMessage: ChatMessage?
     @Binding var editedMessage: ChatMessage?
-    
+
     private let recordingViewHeight: CGFloat = 80
 
     public init(
@@ -37,7 +37,8 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         _viewModel = StateObject(
             wrappedValue: viewModel ?? ViewModelsFactory.makeMessageComposerViewModel(
                 with: channelController,
-                messageController: messageController
+                messageController: messageController,
+                quotedMessage: quotedMessage
             )
         )
         _quotedMessage = quotedMessage
@@ -68,6 +69,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                     state: $viewModel.pickerTypeState,
                     channelConfig: channelConfig
                 )
+                .environmentObject(viewModel)
 
                 factory.makeComposerInputView(
                     text: $viewModel.text,
@@ -213,6 +215,12 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                 viewModel.selectedRangeLocation = editedMessage?.text.count ?? 0
             }
         }
+        .onAppear(perform: {
+            viewModel.fillDraftMessage()
+        })
+        .onDisappear(perform: {
+            viewModel.updateDraftMessage(quotedMessage: quotedMessage)
+        })
         .accessibilityElement(children: .contain)
     }
 }
@@ -299,6 +307,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
                     isInComposer: true,
                     scrolledId: .constant(nil)
                 )
+                .environment(\.channelTranslationLanguage, viewModel.channelController.channel?.membership?.language)
             }
 
             if !addedAssets.isEmpty {
@@ -344,13 +353,15 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
                    displayInfo.isInstant == true {
                     HStack(spacing: 0) {
                         Image(uiImage: images.smallBolt)
+                            .renderingMode(.template)
+                            .foregroundColor(Color(colors.staticColorText))
                         Text(displayInfo.displayName.uppercased())
                     }
                     .padding(.horizontal, 8)
                     .font(fonts.footnoteBold)
                     .frame(height: 24)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
+                    .background(colors.tintColor)
+                    .foregroundColor(Color(colors.staticColorText))
                     .cornerRadius(16)
                 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SnapshotTesting
@@ -18,12 +18,13 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
         streamChat?.utils.channelHeaderLoader.placeholder2 = circleImage
         streamChat?.utils.channelHeaderLoader.placeholder3 = circleImage
         streamChat?.utils.channelHeaderLoader.placeholder4 = circleImage
+        streamChat?.utils.messageListConfig = .init(draftMessagesEnabled: true)
     }
-    
+
     func test_channelListItem_audioMessage() throws {
         // Given
         let message = try mockAudioMessage(text: "Audio", isSentByCurrentUser: true)
-        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message], previewMessage: message)
         
         // When
         let view = ChatChannelListItem(
@@ -42,7 +43,7 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
     func test_channelListItem_imageMessage() throws {
         // Given
         let message = try mockImageMessage(text: "Image", isSentByCurrentUser: true)
-        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message], previewMessage: message)
         
         // When
         let view = ChatChannelListItem(
@@ -61,7 +62,7 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
     func test_channelListItem_videoMessage() throws {
         // Given
         let message = try mockVideoMessage(text: "Video", isSentByCurrentUser: true)
-        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message], previewMessage: message)
         
         // When
         let view = ChatChannelListItem(
@@ -80,7 +81,7 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
     func test_channelListItem_fileMessage() throws {
         // Given
         let message = try mockFileMessage(title: "Filename", text: "File", isSentByCurrentUser: true)
-        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message], previewMessage: message)
         
         // When
         let view = ChatChannelListItem(
@@ -96,10 +97,11 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
     }
     
-    func test_channelListItem_giphyMessage() throws {
+    func test_channelListItem_giphyMessageLatestButPreviewIsAnotherMessage() throws {
         // Given
-        let message = try mockGiphyMessage(text: "Giphy", isSentByCurrentUser: true)
-        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message])
+        let previewMessage = try mockImageMessage(text: "Hi!", isSentByCurrentUser: true)
+        let latestMessage = try mockGiphyMessage(text: "Giphy", isSentByCurrentUser: true)
+        let channel = ChatChannel.mock(cid: .unique, latestMessages: [latestMessage], previewMessage: previewMessage)
         
         // When
         let view = ChatChannelListItem(
@@ -118,7 +120,7 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
     func test_channelListItem_pollMessage_youCreated() throws {
         // Given
         let message = try mockPollMessage(isSentByCurrentUser: true)
-        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message], previewMessage: message)
         
         // When
         let view = ChatChannelListItem(
@@ -137,7 +139,7 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
     func test_channelListItem_pollMessage_someoneCreated() throws {
         // Given
         let message = try mockPollMessage(isSentByCurrentUser: false)
-        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, latestMessages: [message], previewMessage: message)
         
         // When
         let view = ChatChannelListItem(
@@ -161,7 +163,7 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
             .unique,
             .unique
         ])
-        let channel = ChatChannel.mock(cid: .unique, membership: .mock(id: currentUserId), latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, membership: .mock(id: currentUserId), previewMessage: message)
 
         // When
         let view = ChatChannelListItem(
@@ -185,7 +187,103 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
             .unique,
             .mock(pollId: .unique, optionId: .unique, user: .mock(id: currentUserId))
         ])
-        let channel = ChatChannel.mock(cid: .unique, membership: .mock(id: currentUserId), latestMessages: [message])
+        let channel = ChatChannel.mock(cid: .unique, membership: .mock(id: currentUserId), previewMessage: message)
+
+        // When
+        let view = ChatChannelListItem(
+            channel: channel,
+            channelName: "Test",
+            avatar: .circleImage,
+            onlineIndicatorShown: true,
+            onItemTap: { _ in }
+        )
+        .frame(width: defaultScreenSize.width)
+        
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_channelListItem_translatedText_participant() throws {
+        // Given
+        let message = try mockTranslatedMessage(
+            text: "Hello",
+            translations: [.spanish: "Hola"],
+            isSentByCurrentUser: false
+        )
+        let channel = ChatChannel.mock(
+            cid: .unique,
+            membership: .mock(id: .unique, language: .spanish),
+            latestMessages: [message],
+            previewMessage: message
+        )
+        
+        // When
+        let view = ChatChannelListItem(
+            channel: channel,
+            channelName: "Test",
+            avatar: .circleImage,
+            onlineIndicatorShown: true,
+            onItemTap: { _ in }
+        )
+        .frame(width: defaultScreenSize.width)
+        
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_channelListItem_translatedText_me() throws {
+        // Given
+        let message = try mockTranslatedMessage(
+            text: "Hello",
+            translations: [.spanish: "Hola"],
+            isSentByCurrentUser: true
+        )
+        let channel = ChatChannel.mock(
+            cid: .unique,
+            membership: .mock(id: .unique, language: .spanish),
+            latestMessages: [message],
+            previewMessage: message
+        )
+        
+        // When
+        let view = ChatChannelListItem(
+            channel: channel,
+            channelName: "Test",
+            avatar: .circleImage,
+            onlineIndicatorShown: true,
+            onItemTap: { _ in }
+        )
+        .frame(width: defaultScreenSize.width)
+        
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
+    func test_channelListItem_draftMessage() throws {
+        // Given
+        let message = DraftMessage.mock(text: "Draft message")
+        let channel = ChatChannel.mock(cid: .unique, previewMessage: .mock(), draftMessage: message)
+
+        // When
+        let view = ChatChannelListItem(
+            channel: channel,
+            channelName: "Test",
+            avatar: .circleImage,
+            onlineIndicatorShown: true,
+            onItemTap: { _ in }
+        )
+        .frame(width: defaultScreenSize.width)
+        
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
+    func test_channelListItem_draftMessageWithAttachment() throws {
+        // Given
+        let message = DraftMessage.mock(text: "Draft message", attachments: [.dummy(payload: try JSONEncoder().encode(
+            ImageAttachmentPayload(title: "Test", imageRemoteURL: .localYodaImage, file: .init(url: .localYodaImage))
+        ))])
+        let channel = ChatChannel.mock(cid: .unique, previewMessage: .mock(), draftMessage: message)
 
         // When
         let view = ChatChannelListItem(
@@ -334,6 +432,24 @@ final class ChatChannelListItemView_Tests: StreamChatTestCase {
                 createdBy: .mock(id: isSentByCurrentUser ? Self.currentUserId : "test", name: "test"),
                 latestVotes: latestVotes
             )
+        )
+    }
+    
+    private func mockTranslatedMessage(
+        text: String,
+        translations: [TranslationLanguage: String]?,
+        isSentByCurrentUser: Bool
+    ) throws -> ChatMessage {
+        .mock(
+            id: .unique,
+            cid: .unique,
+            text: text,
+            type: .regular,
+            author: .mock(id: "user", name: "User"),
+            createdAt: Date(timeIntervalSince1970: 100),
+            translations: translations,
+            localState: nil,
+            isSentByCurrentUser: isSentByCurrentUser
         )
     }
 }

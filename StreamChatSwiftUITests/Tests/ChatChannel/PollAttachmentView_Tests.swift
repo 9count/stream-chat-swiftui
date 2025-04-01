@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SnapshotTesting
@@ -31,7 +31,7 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         .frame(width: defaultScreenSize.width, height: 240)
         
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
     }
     
     func test_pollAttachmentView_snapshotUniqueVotes() {
@@ -59,7 +59,7 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         .frame(width: defaultScreenSize.width, height: 150)
         
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
     }
     
     func test_pollAttachmentView_closedPoll() {
@@ -88,7 +88,7 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         .frame(width: defaultScreenSize.width, height: 150)
         
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
     }
     
     func test_pollAttachmentView_resultsSnapshot() {
@@ -97,11 +97,11 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         let viewModel = PollAttachmentViewModel(message: .mock(poll: poll), poll: poll)
         
         // When
-        let view = PollResultsView(viewModel: viewModel)
+        let view = PollResultsView(viewModel: viewModel, factory: DefaultViewFactory.shared)
             .applyDefaultSize()
         
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
     }
     
     func test_pollAttachmentView_allOptions() {
@@ -110,11 +110,11 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         let viewModel = PollAttachmentViewModel(message: .mock(poll: poll), poll: poll)
         
         // When
-        let view = PollAllOptionsView(viewModel: viewModel)
+        let view = PollAllOptionsView(viewModel: viewModel, factory: DefaultViewFactory.shared)
             .applyDefaultSize()
         
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
     }
     
     func test_pollAttachmentView_allVotes() {
@@ -122,11 +122,11 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         let poll = Poll.mock()
         
         // When
-        let view = PollOptionAllVotesView(poll: poll, option: poll.options[0])
+        let view = PollOptionAllVotesView(factory: DefaultViewFactory.shared, poll: poll, option: poll.options[0])
             .applyDefaultSize()
         
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
     }
     
     func test_pollAttachmentView_allComments() {
@@ -138,6 +138,7 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         
         // When
         let view = PollCommentsView(
+            factory: DefaultViewFactory.shared,
             poll: poll,
             pollController: pollController,
             viewModel: viewModel
@@ -145,6 +146,6 @@ final class PollAttachmentView_Tests: StreamChatTestCase {
         .applyDefaultSize()
         
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
     }
 }

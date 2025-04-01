@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SnapshotTesting
@@ -43,6 +43,35 @@ class MessageContainerView_Tests: StreamChatTestCase {
             cid: .unique,
             text: "Message sent by current user",
             author: .mock(id: Self.currentUserId, name: "Martin"),
+            isSentByCurrentUser: true,
+            textUpdatedAt: Date()
+        )
+
+        // When
+        let view = testMessageViewContainer(message: message)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_messageContainerEditedAIGenerated_snapshot() {
+        // Given
+        let key = "ai_generated"
+        let utils = Utils(
+            dateFormatter: EmptyDateFormatter(),
+            messageListConfig: .init(
+                skipEditedMessageLabel: { message in
+                    message.extraData[key]?.boolValue == true
+                }
+            )
+        )
+        streamChat = StreamChat(chatClient: chatClient, utils: utils)
+        let message = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Message sent by current user",
+            author: .mock(id: Self.currentUserId, name: "Martin"),
+            extraData: [key: true],
             isSentByCurrentUser: true,
             textUpdatedAt: Date()
         )
@@ -231,6 +260,47 @@ class MessageContainerView_Tests: StreamChatTestCase {
 
         // Then
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_translatedText_participant_snapshot() {
+        // Given
+        let message = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Hello",
+            author: .mock(id: .unique),
+            translations: [
+                .spanish: "Hola"
+            ]
+        )
+        
+        // When
+        let view = testMessageViewContainer(message: message)
+            .environment(\.channelTranslationLanguage, .spanish)
+
+        // Then
+        AssertSnapshot(view, size: CGSize(width: 375, height: 200))
+    }
+    
+    func test_translatedText_myMessageIsNotTranslated_snapshot() {
+        // Given
+        let message = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Hello",
+            author: .mock(id: .unique),
+            translations: [
+                .spanish: "Hola"
+            ],
+            isSentByCurrentUser: true
+        )
+        
+        // When
+        let view = testMessageViewContainer(message: message)
+            .environment(\.channelTranslationLanguage, .spanish)
+
+        // Then
+        AssertSnapshot(view, size: CGSize(width: 375, height: 200))
     }
 
     // MARK: - private

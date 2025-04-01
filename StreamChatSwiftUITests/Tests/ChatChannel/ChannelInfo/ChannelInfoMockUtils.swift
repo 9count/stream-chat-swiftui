@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 @testable import StreamChat
@@ -10,7 +10,8 @@ struct ChannelInfoMockUtils {
     static func setupMockMembers(
         count: Int,
         currentUserId: String,
-        onlineUserIndexes: [Int] = []
+        onlineUserIndexes: [Int] = [],
+        deactivatedUserIndexes: [Int] = []
     ) -> [ChatChannelMember] {
         var activeMembers = [ChatChannelMember]()
         for i in 0..<count {
@@ -25,7 +26,8 @@ struct ChannelInfoMockUtils {
             let member: ChatChannelMember = .mock(
                 id: id,
                 name: "Test \(i)",
-                isOnline: isOnline
+                isOnline: isOnline,
+                userDeactivatedAt: deactivatedUserIndexes.contains(i) ? Date() : nil
             )
             activeMembers.append(member)
         }

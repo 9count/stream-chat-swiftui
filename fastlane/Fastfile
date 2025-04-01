@@ -7,7 +7,7 @@ require 'xcodeproj'
 import 'Sonarfile'
 import 'Allurefile'
 
-xcode_version = ENV['XCODE_VERSION'] || '15.4'
+xcode_version = ENV['XCODE_VERSION'] || '16.2'
 xcode_project = 'StreamChatSwiftUI.xcodeproj'
 sdk_names = ['StreamChatSwiftUI']
 github_repo = ENV['GITHUB_REPOSITORY'] || 'GetStream/stream-chat-swiftui'
@@ -23,7 +23,7 @@ before_all do |lane|
   if is_ci
     setup_ci
     setup_git_config
-    xcversion(version: xcode_version) unless [:publish_release, :allure_launch, :allure_upload, :copyright, :pod_lint].include?(lane)
+    xcversion(version: xcode_version) unless [:sonar_upload, :allure_launch, :allure_upload, :copyright, :pod_lint].include?(lane)
   end
 end
 
@@ -50,8 +50,19 @@ lane :build_xcframeworks do
     codesign << lane_context[SharedValues::XCFRAMEWORK_OUTPUT_PATH]
   end
 
+  remove_swiftui_core_module_shadow(output_directory: output_directory)
   remove_stream_chat_module_shadow(output_directory: output_directory)
   sh(codesign.join(' ')) # We need to sign all frameworks at once
+end
+
+# https://linear.app/stream/issue/IOS-630
+private_lane :remove_swiftui_core_module_shadow do |options|
+  Dir.glob("#{options[:output_directory]}/**/*.swiftinterface").each do |file|
+    if File.file?(file)
+      UI.important("Removing the SwiftUICore module's shadow at: #{file}...")
+      File.write(file, File.read(file).gsub('SwiftUICore.', ''))
+    end
+  end
 end
 
 # Swift emits an invalid module interface when a public type has the same name as a module, see https://github.com/swiftlang/swift/issues/56573
@@ -75,7 +86,7 @@ lane :release do |options|
     File.write(artifacts_path, JSON.dump(artifacts))
 
     # Set the framework version in SystemEnvironment+Version.swift
-    new_content = File.read(swift_environment_path).gsub!(previous_version_number, release_version)
+    new_content = File.read(swift_environment_path).gsub!(previous_version_number, release_version).gsub('-SNAPSHOT', '')
     File.open(swift_environment_path, 'w') { |f| f.puts(new_content) }
 
     # Update sdk sizes
@@ -101,16 +112,21 @@ end
 
 lane :merge_main do
   merge_main_to_develop
+  current_version = get_sdk_version_from_environment
+  add_snapshot_to_current_version(file_path: swift_environment_path)
+  ensure_git_branch(branch: 'develop')
+  sh("git add #{swift_environment_path}")
+  sh("git commit -m 'Add snapshot postfix to v#{current_version}'")
+  sh('git push')
 end
 
 desc "Publish a new release to GitHub and CocoaPods"
 lane :publish_release do |options|
-  release_version = File.read(swift_environment_path).match(/String\s+=\s+"([\d.]+)"/)[1]
+  release_version = get_sdk_version_from_environment
   UI.user_error!("Release #{release_version} has already been published.") if git_tag_exists(tag: release_version, remote: true)
   UI.user_error!('Release version cannot be empty') if release_version.to_s.empty?
   ensure_git_branch(branch: 'main')
 
-  xcversion(version: '15.0.1')
   clean_products
   build_xcframeworks
   compress_frameworks
@@ -128,12 +144,50 @@ lane :publish_release do |options|
   update_spm(version: release_version)
 end
 
+lane :get_sdk_version_from_environment do
+  File.read(swift_environment_path).match(/String\s+=\s+"([\d.]+).*"/)[1]
+end
+
 private_lane :appstore_api_key do
   @appstore_api_key ||= app_store_connect_api_key(
     key_id: 'MT3PRT8TB7',
     issuer_id: '69a6de96-0738-47e3-e053-5b8c7c11a4d1',
     key_content: ENV.fetch('APPSTORE_API_KEY', nil),
     in_house: false
+  )
+end
+
+desc "Updates StreamChat dependency locally. Usage: `bundle exec fastlane update_stream_chat version:4.56.0`"
+lane :update_stream_chat do |options|
+  raise UI.user_error!('Provide a version.') unless options[:version]
+
+  Dir.chdir('..') do
+    file = 'Package.swift'
+    current_stream_chat_version = File.read(file)[/stream-chat-swift\.git", from: "([\d.]+)"\)/, 1]
+    File.write(file, File.read(file).gsub(/(stream-chat-swift\.git", from: ")[\d.]+"/, "\\1#{options[:version]}\""))
+
+    file = 'StreamChatSwiftUI-XCFramework.podspec'
+    File.write(file, File.read(file).gsub(/(StreamChat-XCFramework', '~> )[\d.]+'/, "\\1#{options[:version]}'"))
+
+    file = 'StreamChatSwiftUI.podspec'
+    File.write(file, File.read(file).gsub(/(StreamChat', '~> )[\d.]+'/, "\\1#{options[:version]}'"))
+
+    file = 'StreamChatSwiftUI.xcodeproj/project.pbxproj'
+    content = File.read(file)
+    if content.include?("minimumVersion = #{current_stream_chat_version}")
+      File.write(file, content.gsub("minimumVersion = #{current_stream_chat_version}", "minimumVersion = #{options[:version]}"))
+    elsif content.include?('branch = develop')
+      File.write(file, content.gsub('kind = branch', "minimumVersion = #{options[:version]}").gsub('branch = develop', 'kind = upToNextMajorVersion'))
+    else
+      UI.user_error!("Something went wrong after trying to modify #{file}.")
+    end
+  end
+
+  pr_create(
+    title: "Update StreamChat dependency to #{options[:version]}",
+    base_branch: 'develop',
+    head_branch: "ci/update-stream-chat-dependency-#{Time.now.to_i}",
+    github_repo: github_repo
   )
 end
 
@@ -162,11 +216,24 @@ lane :match_me do |options|
   )
 end
 
+desc 'Builds the latest version of Demo app and uploads it to TestFlight'
+lane :swiftui_testflight_build do
+  match_me
+  testflight_build(
+    api_key: appstore_api_key,
+    xcode_project: xcode_project,
+    sdk_target: 'StreamChatSwiftUI',
+    app_target: 'DemoAppSwiftUI',
+    app_identifier: 'io.getstream.iOS.DemoAppSwiftUI',
+    app_version: File.read(swift_environment_path).match(/String\s+=\s+"([\d.]+)"/)[1]
+  )
+end
+
 desc 'Runs tests in Debug config'
 lane :test_ui do |options|
   next unless is_check_required(sources: sources_matrix[:ui], force_check: @force_check)
 
-  record_mode = !options[:record].to_s.empty?
+  record_mode = options[:record].to_s == 'true'
   remove_snapshots if record_mode
 
   update_testplan_on_ci(path: 'StreamChatSwiftUITests/Tests/StreamChatSwiftUI.xctestplan')
@@ -201,8 +268,10 @@ lane :test_ui do |options|
     pr_create(
       title: '[CI] Snapshots',
       base_branch: current_branch,
-      head_branch: "#{current_branch}-snapshots"
+      head_branch: "#{current_branch}-snapshots-#{Time.now.to_i}"
     )
+  else
+    slather unless options[:build_for_testing]
   end
 end
 

@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SwiftUI
@@ -14,6 +14,7 @@ public struct GiphyBadgeView: View {
         BottomLeftView {
             HStack(spacing: 4) {
                 Image(uiImage: images.commandGiphy)
+                    .accessibilityHidden(true)
                 Text(L10n.Message.GiphyAttachment.title)
                     .font(fonts.bodyBold)
                     .foregroundColor(Color(colors.staticColorText))

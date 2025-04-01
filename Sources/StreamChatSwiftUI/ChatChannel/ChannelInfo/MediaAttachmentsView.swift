@@ -1,18 +1,21 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
 import SwiftUI
 
 /// View displaying media attachments.
-public struct MediaAttachmentsView: View {
+public struct MediaAttachmentsView<Factory: ViewFactory>: View {
+    
+    @Injected(\.images) private var images
 
     @StateObject private var viewModel: MediaAttachmentsViewModel
-
-    private static let spacing: CGFloat = 2
+        
+    let factory: Factory
 
     private static var itemWidth: CGFloat {
+        let spacing: CGFloat = 2
         if UIDevice.current.userInterfaceIdiom == .phone {
             return (UIScreen.main.bounds.size.width / 3) - spacing * 3
         } else {
@@ -20,18 +23,20 @@ public struct MediaAttachmentsView: View {
         }
     }
 
-    private let columns = [GridItem(.adaptive(minimum: itemWidth), spacing: spacing)]
+    private let columns = [GridItem(.adaptive(minimum: itemWidth), spacing: 2)]
 
-    public init(channel: ChatChannel) {
+    public init(factory: Factory = DefaultViewFactory.shared, channel: ChatChannel) {
         _viewModel = StateObject(
             wrappedValue: MediaAttachmentsViewModel(channel: channel)
         )
+        self.factory = factory
     }
 
-    init(viewModel: MediaAttachmentsViewModel) {
+    init(factory: Factory = DefaultViewFactory.shared, viewModel: MediaAttachmentsViewModel) {
         _viewModel = StateObject(
             wrappedValue: viewModel
         )
+        self.factory = factory
     }
 
     public var body: some View {
@@ -40,7 +45,7 @@ public struct MediaAttachmentsView: View {
                 LoadingView()
             } else if viewModel.mediaItems.isEmpty {
                 NoContentView(
-                    imageName: "folder",
+                    image: images.noMedia,
                     title: L10n.ChatInfo.Media.emptyTitle,
                     description: L10n.ChatInfo.Media.emptyDesc
                 )
@@ -71,10 +76,13 @@ public struct MediaAttachmentsView: View {
                             }
                             .overlay(
                                 BottomRightView {
-                                    MessageAvatarView(
-                                        avatarURL: mediaItem.author.imageURL,
-                                        size: .init(width: 24, height: 24),
-                                        showOnlineIndicator: false
+                                    factory.makeMessageAvatarView(
+                                        for: UserDisplayInfo(
+                                            id: mediaItem.author.id,
+                                            name: mediaItem.author.name ?? "",
+                                            imageURL: mediaItem.author.imageURL,
+                                            size: .init(width: 24, height: 24)
+                                        )
                                     )
                                     .overlay(
                                         Circle()

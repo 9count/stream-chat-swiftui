@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
@@ -188,6 +188,10 @@ class MessageListPage {
         static func giphyCancelButton(in messageCell: XCUIElement) -> XCUIElement {
             attachmentActionButton(in: messageCell, label: "Cancel")
         }
+        
+        static func giphyImage(in messageCell: XCUIElement) -> XCUIElement {
+            messageCell.otherElements["GiphyAttachmentView"].images.firstMatch
+        }
 
         static func giphyLabel(in messageCell: XCUIElement) -> XCUIElement {
             messageCell.staticTexts["GiphyAttachmentView"]
@@ -223,7 +227,7 @@ class MessageListPage {
         }
 
         static func files(in messageCell: XCUIElement) -> XCUIElementQuery {
-            messageCell.images.matching(NSPredicate(format: "identifier LIKE 'FileAttachmentsContainer'"))
+            messageCell.buttons.matching(NSPredicate(format: "identifier LIKE 'FileAttachmentsContainer'"))
         }
 
         static func videoPlayer() -> XCUIElement {

@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import AVFoundation
@@ -55,7 +55,7 @@ final class ImagePickerCoordinator: NSObject, UIImagePickerControllerDelegate, U
         didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
     ) {
         if let uiImage = info[.originalImage] as? UIImage,
-           let imageURL = try? uiImage.temporaryLocalFileUrl() {
+           let imageURL = try? uiImage.saveAsJpgToTemporaryUrl() {
             let addedImage = AddedAsset(
                 image: uiImage,
                 id: UUID().uuidString,

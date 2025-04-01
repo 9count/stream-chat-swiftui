@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
@@ -10,6 +10,7 @@ import StreamChat
 public class Utils {
     // TODO: Make it public in future versions.
     internal var messagePreviewFormatter = MessagePreviewFormatter()
+    var markdownFormatter = MarkdownFormatter()
 
     public var dateFormatter: DateFormatter
     public var videoPreviewLoader: VideoPreviewLoader

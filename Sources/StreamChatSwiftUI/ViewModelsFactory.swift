@@ -1,9 +1,10 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
 import StreamChat
+import SwiftUI
 
 /// Factory used to create view models.
 public class ViewModelsFactory {
@@ -14,14 +15,17 @@ public class ViewModelsFactory {
     /// - Parameters:
     ///    - channelListController: possibility to inject custom channel list controller.
     ///    - selectedChannelId: pre-selected channel id (used for deeplinking).
+    ///    - searchType: The type of data the channel list should perform a search. By default it searches messages.
     /// - Returns: `ChatChannelListViewModel`.
     public static func makeChannelListViewModel(
         channelListController: ChatChannelListController? = nil,
-        selectedChannelId: String? = nil
+        selectedChannelId: String? = nil,
+        searchType: ChannelListSearchType = .messages
     ) -> ChatChannelListViewModel {
         ChatChannelListViewModel(
             channelListController: channelListController,
-            selectedChannelId: selectedChannelId
+            selectedChannelId: selectedChannelId,
+            searchType: searchType
         )
     }
 
@@ -61,16 +65,19 @@ public class ViewModelsFactory {
 
     /// Makes the message composer view model.
     /// - Parameters:
-    ///  -  channelController: the channel controller.
+    ///  - channelController: the channel controller.
     ///  - messageController: optional message controller (used in threads).
+    ///  - quotedMessage: the quoted message.
     /// - Returns: `MessageComposerViewModel`.
     public static func makeMessageComposerViewModel(
         with channelController: ChatChannelController,
-        messageController: ChatMessageController?
+        messageController: ChatMessageController?,
+        quotedMessage: Binding<ChatMessage?>? = nil
     ) -> MessageComposerViewModel {
         MessageComposerViewModel(
             channelController: channelController,
-            messageController: messageController
+            messageController: messageController,
+            quotedMessage: quotedMessage
         )
     }
 

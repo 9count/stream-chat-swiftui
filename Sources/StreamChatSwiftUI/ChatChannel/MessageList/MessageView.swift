@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -44,7 +44,8 @@ public struct MessageView<Factory: ViewFactory>: View {
             } else if let poll = message.poll {
                 factory.makePollView(message: message, poll: poll, isFirst: isFirst)
             } else if !message.attachmentCounts.isEmpty {
-                if messageTypeResolver.hasLinkAttachment(message: message) {
+                let hasOnlyLinks = { message.attachmentCounts.keys.allSatisfy { $0 == .linkPreview } }
+                if messageTypeResolver.hasLinkAttachment(message: message) && hasOnlyLinks() {
                     factory.makeLinkAttachmentView(
                         for: message,
                         isFirst: isFirst,
@@ -157,7 +158,7 @@ public struct MessageTextView<Factory: ViewFactory>: View {
             alignment: message.alignmentInBubble,
             spacing: 0
         ) {
-            if let quotedMessage = utils.messageCachingUtils.quotedMessage(for: message) {
+            if let quotedMessage = message.quotedMessage {
                 factory.makeQuotedMessageView(
                     quotedMessage: quotedMessage,
                     fillAvailableSpace: !message.attachmentCounts.isEmpty,
@@ -192,11 +193,10 @@ public struct EmojiTextView<Factory: ViewFactory>: View {
     var isFirst: Bool
 
     @Injected(\.fonts) private var fonts
-    @Injected(\.utils) private var utils
 
     public var body: some View {
         ZStack {
-            if let quotedMessage = utils.messageCachingUtils.quotedMessage(for: message) {
+            if let quotedMessage = message.quotedMessage {
                 VStack(spacing: 0) {
                     factory.makeQuotedMessageView(
                         quotedMessage: quotedMessage,
@@ -250,6 +250,8 @@ struct StreamTextView: View {
 
 @available(iOS 15, *)
 public struct LinkDetectionTextView: View {
+    @Environment(\.layoutDirection) var layoutDirection
+    @Environment(\.channelTranslationLanguage) var translationLanguage
     
     @Injected(\.colors) var colors
     @Injected(\.fonts) var fonts
@@ -271,16 +273,10 @@ public struct LinkDetectionTextView: View {
         self.message = message
     }
     
-    private var markdownEnabled: Bool {
-        utils.messageListConfig.markdownSupportEnabled
-    }
-    
     public var body: some View {
         Group {
             if let displayedText {
                 Text(displayedText)
-            } else if markdownEnabled {
-                Text(text)
             } else {
                 Text(message.adjustedText)
             }
@@ -289,72 +285,67 @@ public struct LinkDetectionTextView: View {
         .font(fonts.body)
         .tint(tintColor)
         .onAppear {
-            detectLinks(for: message)
+            displayedText = attributedString(for: message)
         }
         .onChange(of: message, perform: { updated in
-            detectLinks(for: updated)
+            displayedText = attributedString(for: updated)
         })
     }
     
-    func detectLinks(for message: ChatMessage) {
-        guard utils.messageListConfig.localLinkDetectionEnabled else { return }
-        var attributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: textColor(for: message),
-            .font: fonts.body
-        ]
+    private func attributedString(for message: ChatMessage) -> AttributedString {
+        var text = message.adjustedText
         
-        let additional = utils.messageListConfig.messageDisplayOptions.messageLinkDisplayResolver(message)
-        for (key, value) in additional {
-            if key == .foregroundColor, let value = value as? UIColor {
-                tintColor = Color(value)
-            } else {
-                attributes[key] = value
-            }
+        // Translation
+        if let translatedText = message.textContent(for: translationLanguage) {
+            text = translatedText
         }
-        
-        let attributedText = NSMutableAttributedString(
-            string: message.adjustedText,
-            attributes: attributes
-        )
-        let attributedTextString = attributedText.string
-        var containsLinks = false
-
-        message.mentionedUsers.forEach { user in
-            containsLinks = true
-            let mention = "@\(user.name ?? user.id)"
-            attributedTextString
-                .ranges(of: mention, options: [.caseInsensitive])
-                .map { NSRange($0, in: attributedTextString) }
-                .forEach {
-                    let messageId = message.messageId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
-                    if let messageId {
-                        attributedText.addAttribute(.link, value: "getstream://mention/\(messageId)/\(user.id)", range: $0)
+        // Markdown
+        let attributes = AttributeContainer()
+            .foregroundColor(textColor(for: message))
+            .font(fonts.body)
+        var attributedString: AttributedString
+        if utils.messageListConfig.markdownSupportEnabled {
+            attributedString = utils.markdownFormatter.format(
+                text,
+                attributes: attributes,
+                layoutDirection: layoutDirection
+            )
+        } else {
+            attributedString = AttributedString(message.adjustedText, attributes: attributes)
+        }
+        // Links and mentions
+        if utils.messageListConfig.localLinkDetectionEnabled {
+            for user in message.mentionedUsers {
+                let mention = "@\(user.name ?? user.id)"
+                let ranges = attributedString.ranges(of: mention, options: [.caseInsensitive])
+                for range in ranges {
+                    if let messageId = message.messageId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+                       let url = URL(string: "getstream://mention/\(messageId)/\(user.id)") {
+                        attributedString[range].link = url
                     }
                 }
-        }
-
-        let range = NSRange(location: 0, length: message.adjustedText.utf16.count)
-        linkDetector.links(in: message.adjustedText).forEach { textLink in
-            let escapedOriginalText = NSRegularExpression.escapedPattern(for: textLink.originalText)
-            let pattern = "\\[([^\\]]+)\\]\\(\(escapedOriginalText)\\)"
-            if let regex = try? NSRegularExpression(pattern: pattern) {
-                containsLinks = (regex.firstMatch(
-                    in: message.adjustedText,
-                    options: [],
-                    range: range
-                ) == nil) || !markdownEnabled
-            } else {
-                containsLinks = true
             }
-            
-            if !message.adjustedText.contains("](\(textLink.originalText))") {
-                containsLinks = true
+            for link in linkDetector.links(in: String(attributedString.characters)) {
+                if let attributedStringRange = Range(link.range, in: attributedString) {
+                    attributedString[attributedStringRange].link = link.url
+                }
             }
-            attributedText.addAttribute(.link, value: textLink.url, range: textLink.range)
         }
-            
-        if containsLinks {
-            displayedText = AttributedString(attributedText)
+        // Finally change attributes for links (markdown links, text links, mentions)
+        var linkAttributes = utils.messageListConfig.messageDisplayOptions.messageLinkDisplayResolver(message)
+        if !linkAttributes.isEmpty {
+            var linkAttributeContainer = AttributeContainer()
+            if let uiColor = linkAttributes[.foregroundColor] as? UIColor {
+                linkAttributeContainer = linkAttributeContainer.foregroundColor(Color(uiColor: uiColor))
+                linkAttributes.removeValue(forKey: .foregroundColor)
+            }
+            linkAttributeContainer.merge(AttributeContainer(linkAttributes))
+            for (value, range) in attributedString.runs[\.link] {
+                guard value != nil else { continue }
+                attributedString[range].mergeAttributes(linkAttributeContainer)
+            }
         }
+        
+        return attributedString
     }
 }

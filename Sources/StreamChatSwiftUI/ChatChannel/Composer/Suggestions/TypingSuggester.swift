@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
@@ -115,14 +115,9 @@ public struct TypingSuggester {
             return nil
         }
 
-        // Fetch the suggestion text. The suggestions can't have spaces.
-        // valid example: "@luke_skywa..."
-        // invalid example: "@luke skywa..."
+        // Fetch the suggestion text.
         let suggestionLocation = NSRange(location: suggestionStart, length: suggestionEnd - suggestionStart)
         let suggestionText = textString.substring(with: suggestionLocation)
-        guard !suggestionText.contains(" ") else {
-            return nil
-        }
 
         // A minimum number of characters can be provided to only show
         // suggestions after the customer has input enough characters.

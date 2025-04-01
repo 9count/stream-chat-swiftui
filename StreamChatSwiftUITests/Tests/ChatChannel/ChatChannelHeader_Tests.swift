@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SnapshotTesting
@@ -20,6 +20,27 @@ class ChatChannelHeader_Tests: StreamChatTestCase {
             Text("Test")
                 .applyDefaultSize()
                 .modifier(DefaultChannelHeaderModifier(channel: channel))
+        }
+        .applyDefaultSize()
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_chatChannelHeaderModifier_channelAvatarUpdated() {
+        // Given
+        let channel = ChatChannel.mockDMChannel(name: "Test channel")
+
+        // When
+        let view = NavigationView {
+            Text("Test")
+                .applyDefaultSize()
+                .modifier(
+                    DefaultChannelHeaderModifier(
+                        factory: ChannelAvatarViewFactory(),
+                        channel: channel
+                    )
+                )
         }
         .applyDefaultSize()
 

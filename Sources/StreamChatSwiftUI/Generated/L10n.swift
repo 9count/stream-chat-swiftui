@@ -76,6 +76,12 @@ internal enum L10n {
   }
 
   internal enum Channel {
+    internal enum Header {
+      internal enum Info {
+        /// Channel info
+        internal static var title: String { L10n.tr("Localizable", "channel.header.info.title") }
+      }
+    }
     internal enum Item {
       /// Audio
       internal static var audio: String { L10n.tr("Localizable", "channel.item.audio") }
@@ -111,6 +117,12 @@ internal enum L10n {
       internal static var video: String { L10n.tr("Localizable", "channel.item.video") }
       /// Voice Message
       internal static var voiceMessage: String { L10n.tr("Localizable", "channel.item.voice-message") }
+    }
+    internal enum List {
+      internal enum ScrollToBottom {
+        /// Scroll to bottom
+        internal static var title: String { L10n.tr("Localizable", "channel.list.scroll-to-bottom.title") }
+      }
     }
     internal enum Name {
       /// and
@@ -182,6 +194,12 @@ internal enum L10n {
   }
 
   internal enum Composer {
+    internal enum AudioRecording {
+      /// Start recording audio message
+      internal static var start: String { L10n.tr("Localizable", "composer.audio-recording.start") }
+      /// Stop recording audio message
+      internal static var stop: String { L10n.tr("Localizable", "composer.audio-recording.stop") }
+    }
     internal enum Checkmark {
       /// Also send in channel
       internal static var channelReply: String { L10n.tr("Localizable", "composer.checkmark.channel-reply") }
@@ -219,6 +237,8 @@ internal enum L10n {
       internal static var file: String { L10n.tr("Localizable", "composer.picker.file") }
       /// Photo or Video
       internal static var media: String { L10n.tr("Localizable", "composer.picker.media") }
+      /// Attachment pickers
+      internal static var showAll: String { L10n.tr("Localizable", "composer.picker.show-all") }
       /// Choose attachment type: 
       internal static var title: String { L10n.tr("Localizable", "composer.picker.title") }
     }
@@ -332,6 +352,10 @@ internal enum L10n {
     internal static var deletedMessagePlaceholder: String { L10n.tr("Localizable", "message.deleted-message-placeholder") }
     /// Only visible to you
     internal static var onlyVisibleToYou: String { L10n.tr("Localizable", "message.only-visible-to-you") }
+    /// Translated to %@
+    internal static func translatedTo(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "message.translatedTo", String(describing: p1))
+    }
     internal enum Actions {
       /// Copy Message
       internal static var copy: String { L10n.tr("Localizable", "message.actions.copy") }
@@ -382,6 +406,12 @@ internal enum L10n {
         internal static var confirmationMessage: String { L10n.tr("Localizable", "message.actions.user-unblock.confirmation-message") }
       }
     }
+    internal enum Attachment {
+      /// Attachment %d
+      internal static func accessibilityLabel(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "message.attachment.accessibility-label", p1)
+      }
+    }
     internal enum Bounce {
       /// Message was bounced
       internal static var title: String { L10n.tr("Localizable", "message.bounce.title") }
@@ -391,6 +421,10 @@ internal enum L10n {
       internal static var edited: String { L10n.tr("Localizable", "message.cell.edited") }
       /// Pinned by
       internal static var pinnedBy: String { L10n.tr("Localizable", "message.cell.pinnedBy") }
+      /// Sent at %@
+      internal static func sentAt(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "message.cell.sent-at", String(describing: p1))
+      }
       /// unknown
       internal static var unknownPin: String { L10n.tr("Localizable", "message.cell.unknownPin") }
     }
@@ -405,6 +439,22 @@ internal enum L10n {
     internal enum GiphyAttachment {
       /// GIPHY
       internal static var title: String { L10n.tr("Localizable", "message.giphy-attachment.title") }
+    }
+    internal enum Moderation {
+      internal enum Alert {
+        /// Cancel
+        internal static var cancel: String { L10n.tr("Localizable", "message.moderation.alert.cancel") }
+        /// Delete Message
+        internal static var delete: String { L10n.tr("Localizable", "message.moderation.alert.delete") }
+        /// Edit Message
+        internal static var edit: String { L10n.tr("Localizable", "message.moderation.alert.edit") }
+        /// Consider how your comment might make others feel and be sure to follow our Community Guidelines.
+        internal static var message: String { L10n.tr("Localizable", "message.moderation.alert.message") }
+        /// Send Anyway
+        internal static var resend: String { L10n.tr("Localizable", "message.moderation.alert.resend") }
+        /// Are you sure?
+        internal static var title: String { L10n.tr("Localizable", "message.moderation.alert.title") }
+      }
     }
     internal enum Polls {
       /// Anonymous
@@ -456,9 +506,19 @@ internal enum L10n {
         internal static var resultsTitle: String { L10n.tr("Localizable", "message.polls.toolbar.results-title") }
       }
     }
+    internal enum Preview {
+      /// Draft
+      internal static var draft: String { L10n.tr("Localizable", "message.preview.draft") }
+    }
     internal enum Reactions {
       /// You
       internal static var currentUser: String { L10n.tr("Localizable", "message.reactions.currentUser") }
+    }
+    internal enum ReadStatus {
+      /// Seen by no one
+      internal static var seenByNoOne: String { L10n.tr("Localizable", "message.read-status.seen-by-no-one") }
+      /// Seen by others
+      internal static var seenByOthers: String { L10n.tr("Localizable", "message.read-status.seen-by-others") }
     }
     internal enum Search {
       /// Cancel

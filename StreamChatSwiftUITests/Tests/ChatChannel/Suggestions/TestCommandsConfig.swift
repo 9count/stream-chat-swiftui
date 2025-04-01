@@ -1,11 +1,12 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Combine
 import Foundation
 import StreamChat
 import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import SwiftUI
 
 /// Test commands configuration.

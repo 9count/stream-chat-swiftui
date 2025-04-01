@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -148,6 +148,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                                 onLongPress: handleLongPress(messageDisplayInfo:),
                                 isLast: !showsLastInGroupInfo && message == messages.last
                             )
+                            .environment(\.channelTranslationLanguage, channel.membership?.language)
                             .onAppear {
                                 if index == nil {
                                     index = messageListDateUtils.index(for: message, in: messages)
@@ -241,7 +242,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                         if scrollButtonShown != showScrollToLatestButton {
                             showScrollToLatestButton = scrollButtonShown
                         }
-                        if keyboardShown && diff < -20 {
+                        if messageListConfig.resignsFirstResponderOnScrollDown && keyboardShown && diff < -20 {
                             keyboardShown = false
                             resignFirstResponder()
                         }
@@ -372,6 +373,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                 frame: updatedFrame,
                 contentWidth: messageDisplayInfo.contentWidth,
                 isFirst: messageDisplayInfo.isFirst,
+                showsMessageActions: messageDisplayInfo.showsMessageActions,
+                showsBottomContainer: messageDisplayInfo.showsBottomContainer,
                 keyboardWasShown: true
             )
 
@@ -470,6 +473,7 @@ public struct ScrollToBottomButton: View {
                     .frame(width: buttonSize, height: buttonSize)
                     .modifier(ShadowViewModifier(cornerRadius: buttonSize / 2))
             }
+            .accessibilityLabel(Text(L10n.Channel.List.ScrollToBottom.title))
             .padding()
             .overlay(
                 unreadCount > 0 ?
@@ -529,6 +533,7 @@ public struct DateIndicatorView: View {
                 .padding(.all, 8)
             Spacer()
         }
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -594,5 +599,20 @@ private class MessageRenderingUtil {
         }
 
         return skipRendering
+    }
+}
+
+private struct ChannelTranslationLanguageKey: EnvironmentKey {
+    static let defaultValue: TranslationLanguage? = nil
+}
+
+extension EnvironmentValues {
+    var channelTranslationLanguage: TranslationLanguage? {
+        get {
+            self[ChannelTranslationLanguageKey.self]
+        }
+        set {
+            self[ChannelTranslationLanguageKey.self] = newValue
+        }
     }
 }

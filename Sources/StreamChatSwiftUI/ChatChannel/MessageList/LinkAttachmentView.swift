@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -9,7 +9,6 @@ import SwiftUI
 /// In case of more than one link, only the first link is previewed.
 public struct LinkAttachmentContainer<Factory: ViewFactory>: View {
     @Injected(\.colors) private var colors
-    @Injected(\.utils) private var utils
 
     var factory: Factory
     var message: ChatMessage
@@ -38,7 +37,7 @@ public struct LinkAttachmentContainer<Factory: ViewFactory>: View {
             alignment: message.alignmentInBubble,
             spacing: 0
         ) {
-            if let quotedMessage = utils.messageCachingUtils.quotedMessage(for: message) {
+            if let quotedMessage = message.quotedMessage {
                 factory.makeQuotedMessageView(
                     quotedMessage: quotedMessage,
                     fillAvailableSpace: !message.attachmentCounts.isEmpty,

@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -38,7 +38,8 @@ public struct TrailingComposerView: View {
     }
 }
 
-struct VoiceRecordingButton: View {
+/// The button responsible to start voice recording.
+public struct VoiceRecordingButton: View {
     @Injected(\.colors) var colors
     @Injected(\.utils) var utils
     
@@ -47,7 +48,11 @@ struct VoiceRecordingButton: View {
     @State private var longPressed = false
     @State private var longPressStarted: Date?
 
-    var body: some View {
+    public init(viewModel: MessageComposerViewModel) {
+        self.viewModel = viewModel
+    }
+
+    public var body: some View {
         Image(systemName: "mic")
             .foregroundColor(Color(colors.textLowEmphasis))
             .gesture(
@@ -80,5 +85,12 @@ struct VoiceRecordingButton: View {
                         }
                     }
             )
+            .accessibilityRemoveTraits(.isImage)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(Text(L10n.Composer.AudioRecording.start))
+            .accessibilityAction {
+                viewModel.recordingState = .recording(.zero)
+                viewModel.startRecording()
+            }
     }
 }

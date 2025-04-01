@@ -1,10 +1,11 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SnapshotTesting
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import SwiftUI
 import XCTest
 
@@ -199,6 +200,19 @@ class ChatChannelDataSource_Tests: StreamChatTestCase {
     private func makeMessageThreadDataSource(
         messages: [ChatMessage],
         messageController: ChatMessageController_Mock
+    ) -> MessageThreadDataSource {
+        let channelController = makeChannelController(messages: messages)
+        let threadDataSource = MessageThreadDataSource(
+            channelController: channelController,
+            messageController: messageController
+        )
+
+        return threadDataSource
+    }
+
+    private func makeMessageThreadDataSource(
+        messages: [ChatMessage],
+        messageController: ChatMessageControllerSUI_Mock
     ) -> MessageThreadDataSource {
         let channelController = makeChannelController(messages: messages)
         let threadDataSource = MessageThreadDataSource(

@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 @testable import StreamChat
@@ -10,7 +10,7 @@ class MessageActions_Tests: StreamChatTestCase {
 
     func test_messageActions_currentUserDefault() {
         // Given
-        let channel = ChatChannel.mockDMChannel()
+        let channel = mockDMChannel
         let message = ChatMessage.mock(
             id: .unique,
             cid: channel.cid,
@@ -42,7 +42,7 @@ class MessageActions_Tests: StreamChatTestCase {
 
     func test_messageActions_otherUserDefault() {
         // Given
-        let channel = ChatChannel.mockDMChannel()
+        let channel = mockDMChannel
         let message = ChatMessage.mock(
             id: .unique,
             cid: channel.cid,
@@ -78,7 +78,7 @@ class MessageActions_Tests: StreamChatTestCase {
             chatClient: chatClient,
             utils: .init(messageListConfig: .init(userBlockingEnabled: true))
         )
-        let channel = ChatChannel.mockDMChannel()
+        let channel = mockDMChannel
         let message = ChatMessage.mock(
             id: .unique,
             cid: channel.cid,
@@ -111,7 +111,7 @@ class MessageActions_Tests: StreamChatTestCase {
 
     func test_messageActions_currentUserPinned() {
         // Given
-        let channel = ChatChannel.mockDMChannel()
+        let channel = mockDMChannel
         let message = ChatMessage.mock(
             id: .unique,
             cid: channel.cid,
@@ -149,7 +149,7 @@ class MessageActions_Tests: StreamChatTestCase {
 
     func test_messageActions_messageNotSent() {
         // Given
-        let channel = ChatChannel.mockDMChannel()
+        let channel = mockDMChannel
         let message = ChatMessage.mock(
             id: .unique,
             cid: channel.cid,
@@ -178,7 +178,7 @@ class MessageActions_Tests: StreamChatTestCase {
 
     func test_messageActions_attachmentFailure() {
         // Given
-        let channel = ChatChannel.mockDMChannel()
+        let channel = mockDMChannel
         let attachments = [
             ChatMessageImageAttachment.mock(
                 id: .unique,
@@ -214,10 +214,15 @@ class MessageActions_Tests: StreamChatTestCase {
     
     func test_messageActions_bouncedMessage() {
         // Given
-        let channel = ChatChannel.mockDMChannel()
+        let channel = mockDMChannel
         let moderationDetails = MessageModerationDetails(
             originalText: "Some text",
-            action: .bounce
+            action: .bounce,
+            textHarms: nil,
+            imageHarms: nil,
+            blocklistMatched: nil,
+            semanticFilterMatched: nil,
+            platformCircumvented: nil
         )
         let message = ChatMessage.mock(
             id: .unique,
@@ -245,5 +250,13 @@ class MessageActions_Tests: StreamChatTestCase {
         XCTAssert(messageActions[1].title == "Resend")
         XCTAssert(messageActions[2].title == "Edit Message")
         XCTAssert(messageActions[3].title == "Delete Message")
+    }
+    
+    // MARK: - Private
+    
+    private var mockDMChannel: ChatChannel {
+        ChatChannel.mockDMChannel(
+            ownCapabilities: [.sendMessage, .uploadFile, .pinMessage]
+        )
     }
 }

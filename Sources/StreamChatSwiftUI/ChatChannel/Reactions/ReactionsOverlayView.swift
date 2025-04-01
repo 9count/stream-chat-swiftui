@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -30,6 +30,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
     private var messageActionsCount: Int
     private let paddingValue: CGFloat = 16
     private let messageItemSize: CGFloat = 40
+    private let minOriginY: CGFloat
     private var maxMessageActionsSize: CGFloat {
         screenHeight / 3
     }
@@ -39,6 +40,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         channel: ChatChannel,
         currentSnapshot: UIImage,
         messageDisplayInfo: MessageDisplayInfo,
+        minOriginY: CGFloat = 100,
         bottomOffset: CGFloat = 0,
         onBackgroundTap: @escaping () -> Void,
         onActionExecuted: @escaping (MessageActionInfo) -> Void
@@ -51,6 +53,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         self.channel = channel
         self.factory = factory
         self.currentSnapshot = currentSnapshot
+        self.minOriginY = minOriginY
         self.bottomOffset = bottomOffset
         self.messageDisplayInfo = messageDisplayInfo
         self.onBackgroundTap = onBackgroundTap
@@ -71,7 +74,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                         currentSnapshot: currentSnapshot,
                         popInAnimationInProgress: !popIn
                     )
-                    .offset(y: spacing > 0 ? screenHeight - currentSnapshot.size.height : 0)
+                    .offset(y: overlayOffsetY)
                 } else {
                     Color.gray.opacity(0.4)
                 }
@@ -88,7 +91,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
             if !messageDisplayInfo.message.isRightAligned &&
                 utils.messageListConfig.messageDisplayOptions.showAvatars(for: channel) {
                 factory.makeMessageAvatarView(
-                    for: utils.messageCachingUtils.authorInfo(from: messageDisplayInfo.message)
+                    for: messageDisplayInfo.message.authorDisplayInfo
                 )
                 .offset(
                     x: paddingValue / 2,
@@ -280,17 +283,25 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         let bottomPopupOffset =
             messageDisplayInfo.showsMessageActions ? messageActionsSize : userReactionsPopupHeight
         var originY = messageDisplayInfo.frame.origin.y
-        let minOrigin: CGFloat = 100
-        let maxOrigin: CGFloat = screenHeight - messageContainerHeight - bottomPopupOffset - minOrigin - bottomOffset
-        if originY < minOrigin {
-            originY = minOrigin
+        let maxOrigin: CGFloat = screenHeight - messageContainerHeight - bottomPopupOffset - minOriginY - bottomOffset
+        if originY < minOriginY {
+            originY = minOriginY
         } else if originY > maxOrigin {
             originY = maxOrigin
         }
         
         return originY - spacing
     }
-    
+
+    private var overlayOffsetY: CGFloat {
+        if isIPad && UITabBar.appearance().isHidden == false {
+            // When using iPad with TabBar, this hard coded value makes
+            // sure that the overlay is in the correct position.
+            return 20
+        }
+        return spacing > 0 ? screenHeight - currentSnapshot.size.height : 0
+    }
+
     private var spacing: CGFloat {
         let divider: CGFloat = isIPad ? 2 : 1
         let spacing = (UIScreen.main.bounds.height - screenHeight) / divider

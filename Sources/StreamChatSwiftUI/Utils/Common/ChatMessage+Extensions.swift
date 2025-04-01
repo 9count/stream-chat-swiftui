@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
@@ -45,6 +45,12 @@ public extension ChatMessage {
         }
 
         return isDeleted ? L10n.Message.deletedMessagePlaceholder : adjustedText
+    }
+    
+    func textContent(for translationLanguage: TranslationLanguage?) -> String? {
+        guard let translationLanguage else { return nil }
+        guard !isSentByCurrentUser, !isDeleted else { return nil }
+        return translatedText(for: translationLanguage)
     }
 
     /// A boolean value that checks if the message is visible for current user only.
@@ -93,5 +99,11 @@ public extension ChatMessage {
             return false
         }
         return isSentByCurrentUser
+    }
+}
+
+extension TranslationLanguage {
+    var localizedName: String? {
+        Locale.current.localizedString(forLanguageCode: languageCode)
     }
 }

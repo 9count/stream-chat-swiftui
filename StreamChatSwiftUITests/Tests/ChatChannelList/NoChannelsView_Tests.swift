@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SnapshotTesting
@@ -15,6 +15,6 @@ class NoChannelsView_Tests: StreamChatTestCase {
             .frame(width: 375, height: 600)
 
         // Then
-        assertSnapshot(matching: view, as: .image)
+        AssertSnapshot(view, size: CGSize(width: 375, height: 600))
     }
 }

@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -164,12 +164,14 @@ public struct ChannelMemberView: View {
                 showOnlineIndicator: onlineIndicatorShown,
                 size: memberSize
             )
+            .accessibilityHidden(true)
 
             Text(name)
                 .font(fonts.footnoteBold)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .frame(maxWidth: memberSize.width, maxHeight: 34, alignment: .top)
+                .accessibilityLabel(Text(name) + Text(onlineIndicatorShown ? ", \(L10n.Message.Title.online)" : ""))
         }
     }
 }

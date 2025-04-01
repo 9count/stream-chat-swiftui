@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Sentry
@@ -63,7 +63,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         #endif
 
         let utils = Utils(
-            messageListConfig: MessageListConfig(dateIndicatorPlacement: .messageList, userBlockingEnabled: true),
+            messageListConfig: MessageListConfig(
+                dateIndicatorPlacement: .messageList,
+                userBlockingEnabled: true,
+                bouncedMessagesAlertActionsEnabled: true,
+                skipEditedMessageLabel: { message in
+                    message.extraData["ai_generated"]?.boolValue == true
+                },
+                draftMessagesEnabled: true
+            ),
             composerConfig: ComposerConfig(isVoiceRecordingEnabled: true)
         )
         streamChat = StreamChat(chatClient: chatClient, utils: utils)
@@ -74,7 +82,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 userInfo: .init(
                     id: credentials.id,
                     name: credentials.name,
-                    imageURL: credentials.avatarURL
+                    imageURL: credentials.avatarURL,
+                    language: AppConfiguration.default.translationLanguage
                 ),
                 token: token
             )

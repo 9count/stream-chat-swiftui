@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -7,7 +7,8 @@ import SwiftUI
 
 /// Chat channel list item that supports navigating to a destination.
 /// It's generic over the channel destination.
-public struct ChatChannelNavigatableListItem<ChannelDestination: View>: View {
+public struct ChatChannelNavigatableListItem<Factory: ViewFactory, ChannelDestination: View>: View {
+    private var factory: Factory
     private var channel: ChatChannel
     private var channelName: String
     private var avatar: UIImage
@@ -18,6 +19,7 @@ public struct ChatChannelNavigatableListItem<ChannelDestination: View>: View {
     private var onItemTap: (ChatChannel) -> Void
 
     public init(
+        factory: Factory = DefaultViewFactory.shared,
         channel: ChatChannel,
         channelName: String,
         avatar: UIImage,
@@ -27,6 +29,7 @@ public struct ChatChannelNavigatableListItem<ChannelDestination: View>: View {
         channelDestination: @escaping (ChannelSelectionInfo) -> ChannelDestination,
         onItemTap: @escaping (ChatChannel) -> Void
     ) {
+        self.factory = factory
         self.channel = channel
         self.channelName = channelName
         self.channelDestination = channelDestination
@@ -40,6 +43,7 @@ public struct ChatChannelNavigatableListItem<ChannelDestination: View>: View {
     public var body: some View {
         ZStack {
             ChatChannelListItem(
+                factory: factory,
                 channel: channel,
                 channelName: channelName,
                 injectedChannelInfo: injectedChannelInfo,
@@ -73,10 +77,16 @@ public struct ChannelSelectionInfo: Identifiable {
     public let channel: ChatChannel
     public let message: ChatMessage?
     public var injectedChannelInfo: InjectedChannelInfo?
+    public var searchType: ChannelListSearchType
 
-    public init(channel: ChatChannel, message: ChatMessage?) {
+    public init(
+        channel: ChatChannel,
+        message: ChatMessage?,
+        searchType: ChannelListSearchType = .messages
+    ) {
         self.channel = channel
         self.message = message
+        self.searchType = searchType
         if let message = message {
             id = "\(channel.cid.id)-\(message.id)"
         } else {
@@ -100,21 +110,5 @@ extension ChatChannel {
 
     public var channelSelectionInfo: ChannelSelectionInfo {
         ChannelSelectionInfo(channel: self, message: nil)
-    }
-}
-
-extension ChatMessage {
-
-    func makeChannelSelectionInfo(with chatClient: ChatClient) -> ChannelSelectionInfo? {
-        if let channelId = cid,
-           let channel = chatClient.channelController(for: channelId).channel {
-            let searchResult = ChannelSelectionInfo(
-                channel: channel,
-                message: self
-            )
-            return searchResult
-        } else {
-            return nil
-        }
     }
 }

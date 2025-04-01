@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SwiftUI
@@ -8,12 +8,13 @@ import SwiftUI
 struct ShadowViewModifier: ViewModifier {
     @Injected(\.colors) private var colors
 
+    var backgroundColor: UIColor = .systemBackground
     var cornerRadius: CGFloat = 16
     var firstRadius: CGFloat = 10
     var firstY: CGFloat = 12
     
     func body(content: Content) -> some View {
-        content.background(Color(UIColor.systemBackground))
+        content.background(Color(backgroundColor))
             .cornerRadius(cornerRadius)
             .modifier(ShadowModifier(firstRadius: firstRadius, firstY: firstY))
             .overlay(
@@ -75,6 +76,24 @@ struct IconOverImageModifier: ViewModifier {
         content
             .foregroundColor(Color(colors.staticColorText))
             .padding(.all, 4)
+    }
+}
+
+struct ChangeChannelBarsVisibilityModifier: ViewModifier {
+    
+    @Injected(\.utils) private var utils
+    
+    var shouldShow: Bool
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 16, *), !utils.messageListConfig.handleTabBarVisibility {
+            content
+                .navigationBarHidden(!shouldShow)
+                .toolbar(shouldShow ? .visible : .hidden, for: .tabBar)
+        } else {
+            content
+                .navigationBarHidden(!shouldShow)
+        }
     }
 }
 

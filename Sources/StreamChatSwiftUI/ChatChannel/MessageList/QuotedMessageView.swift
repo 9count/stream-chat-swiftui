@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -7,9 +7,6 @@ import SwiftUI
 
 /// Container showing the quoted message view with the user avatar.
 struct QuotedMessageViewContainer<Factory: ViewFactory>: View {
-
-    @Injected(\.utils) private var utils
-
     private let avatarSize: CGFloat = 24
 
     var factory: Factory
@@ -22,7 +19,7 @@ struct QuotedMessageViewContainer<Factory: ViewFactory>: View {
         HStack(alignment: .bottom) {
             if !quotedMessage.isSentByCurrentUser || forceLeftToRight {
                 factory.makeQuotedMessageAvatarView(
-                    for: utils.messageCachingUtils.authorInfo(from: quotedMessage),
+                    for: quotedMessage.authorDisplayInfo,
                     size: CGSize(width: avatarSize, height: avatarSize)
                 )
 
@@ -41,7 +38,7 @@ struct QuotedMessageViewContainer<Factory: ViewFactory>: View {
                 )
 
                 factory.makeQuotedMessageAvatarView(
-                    for: utils.messageCachingUtils.authorInfo(from: quotedMessage),
+                    for: quotedMessage.authorDisplayInfo,
                     size: CGSize(width: avatarSize, height: avatarSize)
                 )
             }
@@ -50,12 +47,16 @@ struct QuotedMessageViewContainer<Factory: ViewFactory>: View {
         .onTapGesture(perform: {
             scrolledId = quotedMessage.messageId
         })
+        .accessibilityAction {
+            scrolledId = quotedMessage.messageId
+        }
         .accessibilityIdentifier("QuotedMessageViewContainer")
     }
 }
 
 /// View for the quoted message.
 public struct QuotedMessageView<Factory: ViewFactory>: View {
+    @Environment(\.channelTranslationLanguage) var translationLanguage
 
     @Injected(\.images) private var images
     @Injected(\.fonts) private var fonts
@@ -178,8 +179,11 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
     }
 
     private var textForMessage: String {
-        if !quotedMessage.text.isEmpty {
-            return quotedMessage.adjustedText
+        let translatedTextContent = quotedMessage.textContent(for: translationLanguage)
+        let textContent = translatedTextContent ?? quotedMessage.textContent ?? ""
+        
+        if !textContent.isEmpty {
+            return textContent
         }
 
         if !quotedMessage.imageAttachments.isEmpty {

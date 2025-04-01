@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import AVKit
@@ -7,7 +7,8 @@ import StreamChat
 import SwiftUI
 
 public struct MessageContainerView<Factory: ViewFactory>: View {
-
+    @Environment(\.channelTranslationLanguage) var translationLanguage
+    
     @Injected(\.fonts) private var fonts
     @Injected(\.colors) private var colors
     @Injected(\.images) private var images
@@ -68,7 +69,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                 } else {
                     if messageListConfig.messageDisplayOptions.showAvatars(for: channel) {
                         factory.makeMessageAvatarView(
-                            for: utils.messageCachingUtils.authorInfo(from: message)
+                            for: message.authorDisplayInfo
                         )
                         .opacity(showsAllInfo ? 1 : 0)
                         .offset(y: bottomReactionsShown ? offsetYAvatar : 0)
@@ -185,6 +186,20 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                             )
                             .accessibilityElement(children: .contain)
                             .accessibility(identifier: "MessageRepliesView")
+                        } else if message.showReplyInChannel, let parentId = message.parentMessageId {
+                            /// In case the parent message is not available in the local cache, we need to fetch it from the remote server.
+                            /// The lazy view uses the `factory.makeMessageRepliesShownInChannelView` internally once the parent message is fetched.
+                            LazyMessageRepliesView(
+                                factory: factory,
+                                channel: channel,
+                                message: message,
+                                parentMessageController: chatClient.messageController(
+                                    cid: channel.cid,
+                                    messageId: parentId
+                                )
+                            )
+                            .accessibilityElement(children: .contain)
+                            .accessibility(identifier: "MessageRepliesView")
                         }
                     }
                     
@@ -211,6 +226,12 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         }
                     }
 
+                    if message.textContent(for: translationLanguage) != nil,
+                       let localizedName = translationLanguage?.localizedName {
+                        Text(L10n.Message.translatedTo(localizedName))
+                            .font(fonts.footnote)
+                            .foregroundColor(Color(colors.subtitleText))
+                    }
                     if showsAllInfo && !message.isDeleted {
                         if message.isSentByCurrentUser && channel.config.readEventsEnabled {
                             HStack(spacing: 4) {

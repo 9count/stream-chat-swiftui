@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -25,7 +25,7 @@ extension ChannelAction {
 
         actions.append(viewInfo)
 
-        if !channel.isDirectMessageChannel, let userId = chatClient.currentUserId {
+        if !channel.isDirectMessageChannel, channel.ownCapabilities.contains(.leaveChannel), let userId = chatClient.currentUserId {
             let leaveGroup = leaveGroup(
                 for: channel,
                 chatClient: chatClient,

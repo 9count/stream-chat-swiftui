@@ -1,9 +1,10 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import SwiftUI
 import XCTest
 
@@ -488,6 +489,30 @@ class ChatChannelViewModel_Tests: StreamChatTestCase {
     
         // Then
         XCTAssert(shouldJump == false)
+    }
+    
+    func test_chatChannelVM_crashWhenIndexAccess() {
+        // Given
+        let message1 = ChatMessage.mock()
+        let message2 = ChatMessage.mock()
+        let message3 = ChatMessage.mock()
+        let channelController = makeChannelController(messages: [message1, message2])
+        let viewModel = ChatChannelViewModel(channelController: channelController)
+        let newMessages = LazyCachedMapCollection(elements: [message1, message2, message3])
+        
+        // When
+        viewModel.dataSource(
+            channelDataSource: ChatChannelDataSource(controller: channelController),
+            didUpdateMessages: newMessages,
+            changes: [
+                .insert(message3, index: IndexPath(row: 2, section: 0)),
+                .update(message3, index: IndexPath(row: 2, section: 0)),
+                .update(message3, index: IndexPath(row: 3, section: 0)) // intentionally invalid path
+            ]
+        )
+        
+        // Then
+        XCTAssertEqual(3, viewModel.messages.count)
     }
 
     // MARK: - private

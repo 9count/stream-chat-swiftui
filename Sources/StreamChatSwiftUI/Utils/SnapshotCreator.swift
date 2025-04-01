@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SwiftUI
@@ -28,15 +28,9 @@ public class DefaultSnapshotCreator: SnapshotCreator {
     }
 
     func makeSnapshot(from view: UIView) -> UIImage {
-        let currentSnapshot: UIImage?
-        UIGraphicsBeginImageContext(view.frame.size)
-        if let currentGraphicsContext = UIGraphicsGetCurrentContext() {
-            view.layer.render(in: currentGraphicsContext)
-            currentSnapshot = UIGraphicsGetImageFromCurrentImageContext()
-        } else {
-            currentSnapshot = images.snapshot
+        let renderer = UIGraphicsImageRenderer(size: view.bounds.size)
+        return renderer.image { _ in
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
         }
-        UIGraphicsEndImageContext()
-        return currentSnapshot ?? images.snapshot
     }
 }

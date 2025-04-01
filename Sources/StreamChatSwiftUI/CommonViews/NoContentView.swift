@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SwiftUI
@@ -10,22 +10,25 @@ struct NoContentView: View {
     @Injected(\.fonts) private var fonts
     @Injected(\.colors) private var colors
 
-    var imageName: String
+    var image: UIImage
     var title: String?
     var description: String
     var shouldRotateImage: Bool = false
+    var size: CGSize = CGSize(width: 100, height: 100)
 
     public var body: some View {
         VStack(spacing: 8) {
             Spacer()
 
             VStack(spacing: 8) {
-                Image(systemName: imageName)
+                Image(uiImage: image)
+                    .resizable()
+                    .renderingMode(.template)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size.width, height: size.height)
                     .rotation3DEffect(
                         shouldRotateImage ? .degrees(180) : .zero, axis: (x: 0, y: 1, z: 0)
                     )
-                    .aspectRatio(contentMode: .fit)
-                    .font(.system(size: 100))
                     .foregroundColor(Color(colors.textLowEmphasis))
                 title.map { Text($0) }
                     .font(fonts.bodyBold)

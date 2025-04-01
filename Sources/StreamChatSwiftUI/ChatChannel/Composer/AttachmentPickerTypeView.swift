@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -27,6 +27,7 @@ public enum AttachmentPickerType {
 
 /// View for picking the attachment type (media or giphy commands).
 public struct AttachmentPickerTypeView: View {
+    @EnvironmentObject private var composerViewModel: MessageComposerViewModel
     @Injected(\.images) private var images
     @Injected(\.colors) private var colors
 
@@ -49,12 +50,13 @@ public struct AttachmentPickerTypeView: View {
         HStack(spacing: 16) {
             switch pickerTypeState {
             case let .expanded(attachmentPickerType):
-                if channelConfig?.uploadsEnabled == true {
+                if composerViewModel.channelController.channel?.canUploadFile == true {
                     PickerTypeButton(
                         pickerTypeState: $pickerTypeState,
                         pickerType: .media,
                         selected: attachmentPickerType
                     )
+                    .accessibilityLabel(Text(L10n.Composer.Picker.showAll))
                     .accessibilityIdentifier("PickerTypeButtonMedia")
                 }
 
@@ -64,6 +66,7 @@ public struct AttachmentPickerTypeView: View {
                         pickerType: .instantCommands,
                         selected: attachmentPickerType
                     )
+                    .accessibilityLabel(Text(L10n.Composer.Suggestions.Commands.header))
                     .accessibilityIdentifier("PickerTypeButtonCommands")
                 }
             case .collapsed:

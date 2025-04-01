@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Photos
@@ -74,6 +74,7 @@ extension ViewFactory {
         leadingSwipeButtonTapped: @escaping (ChatChannel) -> Void
     ) -> some View {
         let listItem = ChatChannelNavigatableListItem(
+            factory: self,
             channel: channel,
             channelName: channelName,
             avatar: avatar,
@@ -92,6 +93,18 @@ extension ViewFactory {
             trailingRightButtonTapped: trailingSwipeRightButtonTapped,
             trailingLeftButtonTapped: trailingSwipeLeftButtonTapped,
             leadingSwipeButtonTapped: leadingSwipeButtonTapped
+        )
+    }
+    
+    public func makeChannelAvatarView(
+        for channel: ChatChannel,
+        with options: ChannelAvatarViewOptions
+    ) -> some View {
+        ChannelAvatarView(
+            channel: channel,
+            showOnlineIndicator: options.showOnlineIndicator,
+            avatar: options.avatar,
+            size: options.size
         )
     }
     
@@ -189,6 +202,7 @@ extension ViewFactory {
         channelDestination: @escaping (ChannelSelectionInfo) -> ChannelDestination
     ) -> some View {
         SearchResultItem(
+            factory: self,
             searchResult: searchResult,
             onlineIndicatorShown: onlineIndicatorShown,
             channelName: channelName,
@@ -259,7 +273,11 @@ extension ViewFactory {
             forceLeftToRight: messageModifierInfo.forceLeftToRight
         )
     }
-    
+
+    public func makeBouncedMessageActionsModifier(viewModel: ChatChannelViewModel) -> some ViewModifier {
+        BouncedMessageActionsModifier(viewModel: viewModel)
+    }
+
     public func makeEmptyMessagesView(
         for channel: ChatChannel,
         colors: ColorPalette
@@ -270,7 +288,7 @@ extension ViewFactory {
     }
     
     public func makeMessageAvatarView(for userDisplayInfo: UserDisplayInfo) -> some View {
-        MessageAvatarView(avatarURL: userDisplayInfo.imageURL)
+        MessageAvatarView(avatarURL: userDisplayInfo.imageURL, size: userDisplayInfo.size ?? .messageAvatarSize)
     }
     
     public func makeQuotedMessageAvatarView(
@@ -283,7 +301,11 @@ extension ViewFactory {
     public func makeChannelHeaderViewModifier(
         for channel: ChatChannel
     ) -> some ChatChannelHeaderViewModifier {
-        DefaultChannelHeaderModifier(channel: channel)
+        DefaultChannelHeaderModifier(factory: self, channel: channel)
+    }
+    
+    public func makeChannelBarsVisibilityViewModifier(shouldShow: Bool) -> some ViewModifier {
+        ChangeChannelBarsVisibilityModifier(shouldShow: shouldShow)
     }
     
     public func makeChannelLoadingView() -> some View {

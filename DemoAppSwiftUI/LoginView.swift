@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChatSwiftUI
@@ -20,6 +20,11 @@ struct LoginView: View {
             Text("Welcome to Stream Chat")
                 .font(.title)
                 .padding(.all, 8)
+            
+            Button("Configuration") {
+                viewModel.showsConfiguration = true
+            }
+            .buttonStyle(.borderedProminent)
 
             Text("Select a user to try the iOS SDK:")
                 .font(.body)
@@ -42,6 +47,9 @@ struct LoginView: View {
         .overlay(
             viewModel.loading ? ProgressView() : nil
         )
+        .sheet(isPresented: $viewModel.showsConfiguration) {
+            AppConfigurationView()
+        }
     }
 }
 
@@ -56,15 +64,25 @@ struct DemoUserView: View {
 
     var body: some View {
         HStack {
-            StreamLazyImage(
-                url: user.avatarURL,
-                size: CGSize(width: imageSize, height: imageSize)
-            )
+            if user.isGuest {
+                Image(systemName: "person.fill")
+                    .resizable()
+                    .foregroundColor(colors.tintColor)
+                    .frame(width: imageSize, height: imageSize)
+                    .aspectRatio(contentMode: .fit)
+                    .background(Color(colors.background6))
+                    .clipShape(Circle())
+            } else {
+                StreamLazyImage(
+                    url: user.avatarURL,
+                    size: CGSize(width: imageSize, height: imageSize)
+                )
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(user.name)
                     .font(fonts.bodyBold)
-                Text("Stream test account")
+                Text(user.isGuest ? "Login as Guest" : "Stream test account")
                     .font(fonts.footnote)
                     .foregroundColor(Color(colors.textLowEmphasis))
             }

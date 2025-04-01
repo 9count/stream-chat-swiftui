@@ -1,9 +1,10 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import XCTest
 
 class ChatChannelTestHelpers {
@@ -15,7 +16,11 @@ class ChatChannelTestHelpers {
         lastActiveWatchers: [ChatUser] = []
     ) -> ChatChannelController_Mock {
         let config = ChannelConfig(commands: [Command(name: "giphy", description: "", set: "", args: "")])
-        let channel = chatChannel ?? ChatChannel.mockDMChannel(config: config, lastActiveWatchers: lastActiveWatchers)
+        let channel = chatChannel ?? ChatChannel.mockDMChannel(
+            config: config,
+            ownCapabilities: [.uploadFile],
+            lastActiveWatchers: lastActiveWatchers
+        )
         let channelQuery = ChannelQuery(cid: channel.cid)
         let channelListQuery = ChannelListQuery(filter: .containMembers(userIds: [chatClient.currentUserId ?? .unique]))
         let channelController = ChatChannelController_Mock.mock(
@@ -195,23 +200,28 @@ class ChatChannelTestHelpers {
         return fileAttachments
     }
     
+    static func voiceRecordingAttachments(count: Int) -> [AnyChatMessageAttachment] {
+        (0..<count).map { index in
+            let title = index == 0 ? "Recording" : "Recording-\(index)"
+            let payload = VoiceRecordingAttachmentPayload(
+                title: title,
+                voiceRecordingRemoteURL: .localYodaImage,
+                file: try! .init(url: .localYodaImage),
+                duration: Double(index) + 5.0,
+                waveformData: [0, 0.1, 0.5, 1],
+                extraData: nil
+            )
+            return ChatMessageVoiceRecordingAttachment(
+                id: .unique,
+                type: .voiceRecording,
+                payload: payload,
+                downloadingState: nil,
+                uploadingState: nil
+            ).asAnyAttachment
+        }
+    }
+    
     static var voiceRecordingAttachments: [AnyChatMessageAttachment] {
-        let payload = VoiceRecordingAttachmentPayload(
-            title: "Recording",
-            voiceRecordingRemoteURL: .localYodaImage,
-            file: try! .init(url: .localYodaImage),
-            duration: 5,
-            waveformData: [0, 0.1, 0.5, 1],
-            extraData: nil
-        )
-        let attachment = ChatMessageVoiceRecordingAttachment(
-            id: .unique,
-            type: .voiceRecording,
-            payload: payload,
-            downloadingState: nil,
-            uploadingState: nil
-        ).asAnyAttachment
-        
-        return [attachment]
+        voiceRecordingAttachments(count: 1)
     }
 }

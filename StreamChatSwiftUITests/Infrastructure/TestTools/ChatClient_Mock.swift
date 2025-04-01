@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
@@ -34,12 +34,8 @@ public extension ChatClient {
                 databaseContainerBuilder: {
                     DatabaseContainer_Spy(
                         kind: $0,
-                        shouldFlushOnStart: $1,
-                        shouldResetEphemeralValuesOnStart: $2,
                         bundle: Bundle(for: StreamChatTestCase.self),
-                        localCachingSettings: $3,
-                        deletedMessagesVisibility: $4,
-                        shouldShowShadowedMessages: $5
+                        chatClientConfig: $1
                     )
                 },
                 authenticationRepositoryBuilder: AuthenticationRepository_Mock.init

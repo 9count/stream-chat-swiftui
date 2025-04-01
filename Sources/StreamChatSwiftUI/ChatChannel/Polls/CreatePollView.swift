@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -34,7 +34,7 @@ struct ComposerPollView: View {
     }
 }
 
-struct CreatePollView: View {
+public struct CreatePollView: View {
     
     @Injected(\.colors) var colors
     @Injected(\.fonts) var fonts
@@ -47,7 +47,7 @@ struct CreatePollView: View {
     
     @State private var listId = UUID()
     
-    init(chatController: ChatChannelController, messageController: ChatMessageController?) {
+    public init(chatController: ChatChannelController, messageController: ChatMessageController?) {
         _viewModel = StateObject(
             wrappedValue: CreatePollViewModel(
                 chatController: chatController,
@@ -56,7 +56,7 @@ struct CreatePollView: View {
         )
     }
                 
-    var body: some View {
+    public var body: some View {
         NavigationView {
             List {
                 VStack(alignment: .leading, spacing: 8) {
@@ -162,6 +162,7 @@ struct CreatePollView: View {
                 Spacer()
                     .modifier(ListRowModifier())
             }
+            .background(Color(colors.background).ignoresSafeArea())
             .listStyle(.plain)
             .id(listId)
             .toolbar {
@@ -229,11 +230,14 @@ struct CreatePollItemModifier: ViewModifier {
 }
 
 struct ListRowModifier: ViewModifier {
-    
+
+    @Injected(\.colors) var colors
+
     func body(content: Content) -> some View {
         if #available(iOS 15.0, *) {
             content
                 .listRowSeparator(.hidden)
+                .listRowBackground(Color(colors.background))
         } else {
             content
         }

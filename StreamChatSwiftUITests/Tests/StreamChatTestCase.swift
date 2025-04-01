@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 @testable import StreamChat
@@ -24,5 +24,12 @@ open class StreamChatTestCase: XCTestCase {
     override open func setUp() {
         super.setUp()
         streamChat = StreamChat(chatClient: chatClient)
+    }
+    
+    func adjustAppearance(_ block: (inout Appearance) -> Void) {
+        guard let streamChat else { return }
+        var appearance = streamChat.appearance
+        block(&appearance)
+        streamChat.appearance = appearance
     }
 }

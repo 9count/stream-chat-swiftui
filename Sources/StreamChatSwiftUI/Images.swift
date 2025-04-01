@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
@@ -237,6 +237,7 @@ public class Images {
     public var play: UIImage = loadImageSafely(with: "play")
     public var playFilled: UIImage = UIImage(systemName: "play.fill")!
     public var pause: UIImage = loadImageSafely(with: "pause")
+    public var pauseFilled: UIImage = loadImageSafely(with: "pause.fill")
     
     public var checkmarkFilled: UIImage = UIImage(systemName: "checkmark.circle.fill")!
 
@@ -277,4 +278,19 @@ public class Images {
     // MARK: - Threads
 
     public var threadIcon: UIImage = UIImage(systemName: "text.bubble")!
+    
+    // MARK: - No Content Icons
+    
+    public var noContent: UIImage = UIImage(
+        systemName: "message",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: 100, weight: .regular)
+    ) ?? UIImage.circleImage
+    public var noMedia: UIImage = UIImage(
+        systemName: "folder",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: 100, weight: .regular)
+    ) ?? UIImage.circleImage
+    public var noThreads: UIImage = UIImage(
+        systemName: "text.bubble",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: 100, weight: .regular)
+    ) ?? UIImage.circleImage
 }

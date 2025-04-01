@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Photos
@@ -58,6 +58,7 @@ public struct PhotoAttachmentCell: View {
     @State private var compressing = false
     @State private var loading = false
     @State var requestId: PHContentEditingInputRequestID?
+    @State var idOverlay = UUID()
     
     var asset: PHAsset
     var onImageTap: (AddedAsset) -> Void
@@ -101,7 +102,7 @@ public struct PhotoAttachmentCell: View {
                             .allowsHitTesting(true)
                             .onTapGesture {
                                 withAnimation {
-                                    if let assetURL = assetURL {
+                                    if let assetURL = asset.mediaType == .image ? assetJpgURL() : assetURL {
                                         onImageTap(
                                             AddedAsset(
                                                 image: image,
@@ -113,6 +114,7 @@ public struct PhotoAttachmentCell: View {
                                             )
                                         )
                                     }
+                                    idOverlay = UUID()
                                 }
                             }
                     }
@@ -150,6 +152,7 @@ public struct PhotoAttachmentCell: View {
                     )
                 }
             }
+            .id(idOverlay)
         )
         .onAppear {
             self.loading = false
@@ -189,5 +192,14 @@ public struct PhotoAttachmentCell: View {
                 loading = false
             }
         }
+    }
+
+    /// The original photo is usually in HEIC format.
+    /// This makes sure that the photo is converted to JPG.
+    /// This way it is more compatible with other platforms.
+    private func assetJpgURL() -> URL? {
+        guard let assetURL = assetURL else { return nil }
+        guard let assetData = try? Data(contentsOf: assetURL) else { return nil }
+        return try? UIImage(data: assetData)?.saveAsJpgToTemporaryUrl()
     }
 }

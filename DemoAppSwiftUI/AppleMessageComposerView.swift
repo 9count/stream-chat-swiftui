@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -42,7 +42,8 @@ struct AppleMessageComposerView<Factory: ViewFactory>: View, KeyboardReadable {
         channelConfig = channelController.channel?.config
         let vm = viewModel ?? ViewModelsFactory.makeMessageComposerViewModel(
             with: channelController,
-            messageController: messageController
+            messageController: messageController,
+            quotedMessage: quotedMessage
         )
         _viewModel = StateObject(
             wrappedValue: vm

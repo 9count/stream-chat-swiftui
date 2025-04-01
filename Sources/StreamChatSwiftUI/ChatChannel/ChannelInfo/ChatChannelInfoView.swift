@@ -1,34 +1,42 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
 import SwiftUI
 
 // View for the channel info screen.
-public struct ChatChannelInfoView: View, KeyboardReadable {
+public struct ChatChannelInfoView<Factory: ViewFactory>: View, KeyboardReadable {
 
     @Injected(\.images) private var images
     @Injected(\.colors) private var colors
     @Injected(\.fonts) private var fonts
 
+    let factory: Factory
+    
     @StateObject private var viewModel: ChatChannelInfoViewModel
     private var shownFromMessageList: Bool
 
     @Environment(\.presentationMode) var presentationMode
-
+    
     public init(
+        factory: Factory = DefaultViewFactory.shared,
         channel: ChatChannel,
         shownFromMessageList: Bool = false
     ) {
         _viewModel = StateObject(
             wrappedValue: ChatChannelInfoViewModel(channel: channel)
         )
+        self.factory = factory
         self.shownFromMessageList = shownFromMessageList
     }
 
-    init(viewModel: ChatChannelInfoViewModel) {
+    init(
+        factory: Factory = DefaultViewFactory.shared,
+        viewModel: ChatChannelInfoViewModel
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.factory = factory
         shownFromMessageList = false
     }
 
@@ -36,12 +44,14 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
         ZStack {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    if viewModel.channel.isDirectMessageChannel {
+                    if viewModel.showSingleMemberDMView {
                         ChatInfoDirectChannelView(
+                            factory: factory,
                             participant: viewModel.displayedParticipants.first
                         )
                     } else {
                         ChatInfoParticipantsView(
+                            factory: factory,
                             participants: viewModel.displayedParticipants,
                             onItemAppear: viewModel.onParticipantAppear(_:)
                         )
@@ -59,7 +69,7 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
 
                     ChannelInfoDivider()
 
-                    ChatInfoOptionsView(viewModel: viewModel)
+                    ChatInfoOptionsView(factory: factory, viewModel: viewModel)
 
                     ChannelInfoDivider()
                         .alert(isPresented: $viewModel.errorShown) {
@@ -112,7 +122,11 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
                         .onTapGesture {
                             viewModel.addUsersShown = false
                         }
+                        .accessibilityAction {
+                            viewModel.addUsersShown = false
+                        }
                     AddUsersView(
+                        factory: factory,
                         loadedUserIds: viewModel.participants.map(\.id),
                         onUserTap: viewModel.addUserTapped(_:)
                     )
@@ -122,7 +136,7 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Group {
-                    if viewModel.channel.isDirectMessageChannel {
+                    if viewModel.showSingleMemberDMView {
                         Text(viewModel.displayedParticipants.first?.chatUser.name ?? "")
                             .font(fonts.bodyBold)
                             .foregroundColor(Color(colors.text))
@@ -137,7 +151,7 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
-                viewModel.channel.isDirectMessageChannel ? nil :
+                if viewModel.shouldShowAddUserButton {
                     Button {
                         viewModel.addUsersShown = true
                     } label: {
@@ -148,6 +162,7 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
                             .background(colors.tintColor)
                             .clipShape(Circle())
                     }
+                }
             }
         }
         .onReceive(keyboardWillChangePublisher) { visible in

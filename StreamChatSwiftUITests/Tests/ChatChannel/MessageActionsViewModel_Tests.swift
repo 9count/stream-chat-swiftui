@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 @testable import StreamChat
@@ -20,7 +20,7 @@ class MessageActionsViewModel_Tests: StreamChatTestCase {
                 text: "test",
                 author: .mock(id: .unique)
             ),
-            channel: .mockDMChannel(),
+            channel: .mockDMChannel(ownCapabilities: [.sendMessage, .uploadFile, .pinMessage]),
             chatClient: chatClient,
             onFinish: { _ in },
             onError: { _ in }

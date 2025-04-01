@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Combine
@@ -30,15 +30,10 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
     /// Temporarly holding changes while message list is shown.
     private var queuedChannelsChanges = LazyCachedMapCollection<ChatChannel>()
 
-    private var messageSearchController: ChatMessageSearchController?
-
     private var timer: Timer?
 
     /// Controls loading the channels.
     public private(set) var loadingNextChannels: Bool = false
-
-    /// Checks if internet connection is available.
-    private let networkReachability = NetworkReachability()
 
     /// Checks if the queued changes are completely applied.
     private var markDirty = false
@@ -103,17 +98,34 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
         }
     }
 
-    @Published public var searchText = "" {
+    /// The type for search results.
+    ///
+    /// Setting a new value will reload search results.
+    @Published public var searchType: ChannelListSearchType {
         didSet {
-            if searchText != oldValue {
-                handleSearchTextChange()
-            }
+            guard searchType != oldValue else { return }
+            performSearch()
         }
     }
+    
+    /// The channel search controller which should be created only by ``performChannelSearch()``.
+    public var channelListSearchController: ChatChannelListController?
+    /// The message search controller which should be created only by ``performMessageSearch()``.
+    public var messageSearchController: ChatMessageSearchController?
+
+    /// Serial queue used to process the search results.
+    private let queue = DispatchQueue(label: "com.getstream.stream-chat-swiftui.ChatChannelListViewModel")
 
     @Published public var loadingSearchResults = false
     @Published public var searchResults = [ChannelSelectionInfo]()
     @Published var hideTabBar = false
+    @Published public var searchText = "" {
+        didSet {
+            if searchText != oldValue {
+                performSearch()
+            }
+        }
+    }
 
     public var isSearching: Bool {
         !searchText.isEmpty
@@ -125,10 +137,13 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
     ///   - channelListController: A controller providing the list of channels. If nil, a controller with default `ChannelListQuery` is created.
     ///   - selectedChannelId: The id of a channel to select. If the channel is not part of the channel list query, no channel is selected.
     ///   Consider using ``ChatChannelScreen`` for presenting channels what might not be part of the initial page of channels.
+    ///   - searchType: The type of data the channel list should perform a search.
     public init(
         channelListController: ChatChannelListController? = nil,
-        selectedChannelId: String? = nil
+        selectedChannelId: String? = nil,
+        searchType: ChannelListSearchType = .channels
     ) {
+        self.searchType = searchType
         self.selectedChannelId = selectedChannelId
         if let channelListController = channelListController {
             controller = channelListController
@@ -168,21 +183,13 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
     }
 
     public func loadAdditionalSearchResults(index: Int) {
-        guard let messageSearchController = messageSearchController else {
-            return
-        }
-
-        if index < messageSearchController.messages.count - 10 {
-            return
-        }
-
-        if !loadingNextChannels {
-            loadingNextChannels = true
-            messageSearchController.loadNextMessages { [weak self] _ in
-                guard let self = self else { return }
-                self.loadingNextChannels = false
-                self.updateSearchResults()
-            }
+        switch searchType {
+        case .channels:
+            loadAdditionalChannelSearchResults(index: index)
+        case .messages:
+            loadAdditionalMessageSearchResults(index: index)
+        default:
+            break
         }
     }
 
@@ -215,7 +222,7 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
         }
     }
 
-    public func showErrorPopup(_ error: Error?) {
+    open func showErrorPopup(_ error: Error?) {
         channelAlertType = .error
     }
 
@@ -258,7 +265,7 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
     // MARK: - ChatMessageSearchControllerDelegate
     
     public func controller(_ controller: ChatMessageSearchController, didChangeMessages changes: [ListChange<ChatMessage>]) {
-        updateSearchResults()
+        updateMessageSearchResults()
     }
 
     // MARK: - private
@@ -314,9 +321,7 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
 
         updateChannels()
 
-        if channels.isEmpty {
-            loading = networkReachability.isNetworkAvailable()
-        }
+        loading = channels.isEmpty
 
         controller?.synchronize { [weak self] error in
             guard let self = self else { return }
@@ -326,9 +331,7 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
                 self.channelAlertType = .error
             } else {
                 // access channels
-                if self.selectedChannel == nil {
-                    self.updateChannels()
-                }
+                self.updateChannels()
                 self.checkForDeeplinks()
             }
         }
@@ -340,37 +343,134 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
             .filter { $0.id != chatClient.currentUserId }
     }
 
-    private func updateSearchResults() {
+    private func performSearch() {
+        if searchText.isEmpty {
+            clearSearchResults()
+            return
+        }
+
+        switch searchType {
+        case .messages:
+            performMessageSearch()
+        case .channels:
+            performChannelSearch()
+        default:
+            break
+        }
+    }
+
+    private func loadAdditionalMessageSearchResults(index: Int) {
         guard let messageSearchController = messageSearchController else {
             return
         }
 
-        searchResults = messageSearchController.messages
-            .compactMap { message in
-                message.makeChannelSelectionInfo(with: chatClient)
+        if index < messageSearchController.messages.count - 10 {
+            return
+        }
+
+        if !loadingNextChannels {
+            loadingNextChannels = true
+            messageSearchController.loadNextMessages { [weak self] _ in
+                guard let self = self else { return }
+                self.loadingNextChannels = false
+            }
+        }
+    }
+
+    private func loadAdditionalChannelSearchResults(index: Int) {
+        guard let channelListSearchController = self.channelListSearchController else {
+            return
+        }
+
+        if index < channelListSearchController.channels.count - 10 {
+            return
+        }
+
+        if !loadingNextChannels {
+            loadingNextChannels = true
+            channelListSearchController.loadNextChannels { [weak self] _ in
+                guard let self = self else { return }
+                self.loadingNextChannels = false
+                self.updateChannelSearchResults()
+            }
+        }
+    }
+
+    /// Creates a new message search controller, sets its delegate, and triggers the search operation.
+    open func performMessageSearch() {
+        messageSearchController = chatClient.messageSearchController()
+        loadingSearchResults = true
+        messageSearchController?.search(text: searchText) { [weak self] _ in
+            self?.loadingSearchResults = false
+            self?.messageSearchController?.delegate = self
+            self?.updateMessageSearchResults()
+        }
+    }
+
+    /// Creates a new channel search controller, sets its delegate, and triggers the search operation.
+    open func performChannelSearch() {
+        guard let userId = chatClient.currentUserId else { return }
+        var query = ChannelListQuery(
+            filter: .and([
+                .autocomplete(.name, text: searchText),
+                .containMembers(userIds: [userId])
+            ])
+        )
+        // Do not start watching any of the searched channels.
+        query.options = []
+        channelListSearchController = chatClient.channelListController(query: query)
+        loadingSearchResults = true
+        channelListSearchController?.synchronize { [weak self] _ in
+            self?.loadingSearchResults = false
+            self?.updateChannelSearchResults()
+        }
+    }
+
+    private func updateMessageSearchResults() {
+        guard let messageSearchController, searchType == .messages else {
+            return
+        }
+
+        queue.async { [weak self] in
+            let results: [ChannelSelectionInfo] = messageSearchController.messages.compactMap { message in
+                guard let channelId = message.cid else { return nil }
+                guard let channel = self?.chatClient.channelController(for: channelId).channel else {
+                    return nil
+                }
+                return ChannelSelectionInfo(
+                    channel: channel,
+                    message: message,
+                    searchType: .messages
+                )
+            }
+            DispatchQueue.main.async {
+                self?.searchResults = results
+            }
+        }
+    }
+
+    private func updateChannelSearchResults() {
+        guard let channelListSearchController, searchType == .channels else {
+            return
+        }
+
+        searchResults = channelListSearchController.channels
+            .compactMap { channel in
+                ChannelSelectionInfo(
+                    channel: channel,
+                    message: channel.previewMessage,
+                    searchType: .channels
+                )
             }
     }
 
-    private func handleSearchTextChange() {
-        if !searchText.isEmpty {
-            guard let userId = chatClient.currentUserId else { return }
-            messageSearchController = chatClient.messageSearchController()
-            messageSearchController?.delegate = self
-            let query = MessageSearchQuery(
-                channelFilter: .containMembers(userIds: [userId]),
-                messageFilter: .autocomplete(.text, text: searchText)
-            )
-            loadingSearchResults = true
-            messageSearchController?.search(query: query, completion: { [weak self] _ in
-                self?.loadingSearchResults = false
-                self?.updateSearchResults()
-            })
-        } else {
-            messageSearchController?.delegate = nil
-            messageSearchController = nil
-            searchResults = []
-            updateChannels()
-        }
+    private func clearSearchResults() {
+        messageSearchController?.delegate = nil
+        messageSearchController = nil
+        channelListSearchController?.delegate = nil
+        channelListSearchController = nil
+        searchResults = []
+        updateChannels()
     }
 
     private func observeClientIdChange() {
@@ -490,4 +590,16 @@ public enum ChannelAlertType {
 public enum ChannelPopupType {
     /// Shows the 'more actions' popup.
     case moreActions(ChatChannel)
+}
+
+/// The type of data the channel list should perform a search.
+public struct ChannelListSearchType: Equatable {
+    let type: String
+
+    private init(type: String) {
+        self.type = type
+    }
+
+    public static var channels = Self(type: "channels")
+    public static var messages = Self(type: "messages")
 }

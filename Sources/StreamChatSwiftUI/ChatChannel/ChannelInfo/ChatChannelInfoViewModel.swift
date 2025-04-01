@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Foundation
@@ -37,25 +37,42 @@ public class ChatChannelInfoViewModel: ObservableObject, ChatChannelControllerDe
     @Published public var addUsersShown = false
 
     public var shouldShowLeaveConversationButton: Bool {
-        channel.ownCapabilities.contains(.deleteChannel)
-            || !channel.isDirectMessageChannel
+        if channel.isDirectMessageChannel {
+            return channel.ownCapabilities.contains(.deleteChannel)
+        } else {
+            return channel.ownCapabilities.contains(.leaveChannel)
+        }
     }
 
     public var canRenameChannel: Bool {
         channel.ownCapabilities.contains(.updateChannel)
     }
 
+    public var shouldShowAddUserButton: Bool {
+        if channel.isDirectMessageChannel {
+            return false
+        } else {
+            return channel.ownCapabilities.contains(.updateChannelMembers)
+        }
+    }
+
     var channelController: ChatChannelController!
     private var memberListController: ChatChannelMemberListController!
     private var loadingUsers = false
+    
+    public var showSingleMemberDMView: Bool {
+        channel.isDirectMessageChannel && participants.count <= 2
+    }
 
     public var displayedParticipants: [ParticipantInfo] {
-        if channel.isDirectMessageChannel,
+        if showSingleMemberDMView,
            let otherParticipant = participants.first(where: { info in
                info.id != chatClient.currentUserId
            }) {
             return [otherParticipant]
         }
+        
+        let participants = self.participants.filter { $0.isDeactivated == false }
 
         if participants.count <= 6 {
             return participants
@@ -87,7 +104,8 @@ public class ChatChannelInfoViewModel: ObservableObject, ChatChannelControllerDe
     public var notDisplayedParticipantsCount: Int {
         let total = channel.memberCount
         let displayed = displayedParticipants.count
-        return total - displayed
+        let deactivated = participants.filter { $0.isDeactivated }.count
+        return total - displayed - deactivated
     }
 
     public var mutedText: String {
@@ -96,7 +114,7 @@ public class ChatChannelInfoViewModel: ObservableObject, ChatChannelControllerDe
     }
 
     public var showMoreUsersButton: Bool {
-        !channel.isDirectMessageChannel && memberListCollapsed && notDisplayedParticipantsCount > 0
+        !showSingleMemberDMView && memberListCollapsed && notDisplayedParticipantsCount > 0
     }
 
     public init(channel: ChatChannel) {
@@ -113,7 +131,8 @@ public class ChatChannelInfoViewModel: ObservableObject, ChatChannelControllerDe
             ParticipantInfo(
                 chatUser: member,
                 displayName: member.name ?? member.id,
-                onlineInfoText: onlineInfo(for: member)
+                onlineInfoText: onlineInfo(for: member),
+                isDeactivated: member.isDeactivated
             )
         }
     }
@@ -187,7 +206,8 @@ public class ChatChannelInfoViewModel: ObservableObject, ChatChannelControllerDe
                     ParticipantInfo(
                         chatUser: member,
                         displayName: member.name ?? member.id,
-                        onlineInfoText: onlineInfo(for: member)
+                        onlineInfoText: onlineInfo(for: member),
+                        isDeactivated: member.isDeactivated
                     )
                 }
             }
@@ -236,7 +256,8 @@ public class ChatChannelInfoViewModel: ObservableObject, ChatChannelControllerDe
                     ParticipantInfo(
                         chatUser: member,
                         displayName: member.name ?? member.id,
-                        onlineInfoText: self.onlineInfo(for: member)
+                        onlineInfoText: self.onlineInfo(for: member),
+                        isDeactivated: member.isDeactivated
                     )
                 }
                 if newMembers.count > self.participants.count {

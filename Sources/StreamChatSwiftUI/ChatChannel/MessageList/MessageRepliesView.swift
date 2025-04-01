@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -113,6 +113,48 @@ public struct MessageRepliesView<Factory: ViewFactory>: View {
             return L10n.Message.Threads.reply
         } else {
             return L10n.Message.Threads.replies
+        }
+    }
+}
+
+/// Lazy view that uses the message controller to fetch the parent message before creating message replies view.
+/// This is needed when the parent message is not available in the local cache.
+/// Changing the `parentMessage` to `nil` in the `MessageRepliesView` would case multiple changes including breaking changes.
+struct LazyMessageRepliesView<Factory: ViewFactory>: View {
+    @StateObject private var parentMessageObserver: ChatMessageController.ObservableObject
+
+    var factory: Factory
+    var channel: ChatChannel
+    var message: ChatMessage
+
+    init(
+        factory: Factory,
+        channel: ChatChannel,
+        message: ChatMessage,
+        parentMessageController: ChatMessageController
+    ) {
+        _parentMessageObserver = StateObject(wrappedValue: parentMessageController.observableObject)
+        self.factory = factory
+        self.channel = channel
+        self.message = message
+    }
+
+    var body: some View {
+        VStack {
+            if let parentMessage = parentMessageObserver.message {
+                factory.makeMessageRepliesShownInChannelView(
+                    channel: channel,
+                    message: message,
+                    parentMessage: parentMessage,
+                    replyCount: parentMessage.replyCount
+                )
+            } else {
+                EmptyView()
+            }
+        }.onAppear {
+            if parentMessageObserver.message == nil {
+                parentMessageObserver.controller.synchronize()
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Combine
@@ -86,6 +86,15 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             // When reactions are shown, the navigation bar is hidden.
             // Check the header type and trigger an update.
             checkHeaderType()
+        }
+    }
+
+    @Published public var bouncedMessage: ChatMessage?
+    @Published public var bouncedActionsViewShown = false {
+        didSet {
+            if bouncedActionsViewShown == false {
+                bouncedMessage = nil
+            }
         }
     }
 
@@ -272,17 +281,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             scrolledId = nil
             return true
         } else {
-            let findBaseId: String? = {
-                if StreamRuntimeCheck._isDatabaseObserverItemReusingEnabled {
-                    return messageId
-                } else {
-                    return messageId.components(separatedBy: "$").first
-                }
-            }()
-            guard let baseId = findBaseId else {
-                scrolledId = nil
-                return true
-            }
+            let baseId = messageId
             let alreadyLoaded = messages.map(\.id).contains(baseId)
             if alreadyLoaded {
                 if scrolledId == nil {
@@ -368,8 +367,8 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             
             let previous = index - 1
             let previousMessage = messages[previous]
-            let currentAuthorId = messageCachingUtils.authorId(for: message)
-            let previousAuthorId = messageCachingUtils.authorId(for: previousMessage)
+            let currentAuthorId = message.author.id
+            let previousAuthorId = previousMessage.author.id
 
             if currentAuthorId != previousAuthorId {
                 temp[message.id]?.append(firstMessageKey)
@@ -461,7 +460,28 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     public func showReactionOverlay(for view: AnyView) {
         currentSnapshot = utils.snapshotCreator.makeSnapshot(for: view)
     }
-    
+
+    public func showBouncedActionsView(for message: ChatMessage) {
+        bouncedActionsViewShown = true
+        bouncedMessage = message
+    }
+
+    public func deleteMessage(_ message: ChatMessage) {
+        guard let cid = message.cid else { return }
+        let messageController = chatClient.messageController(cid: cid, messageId: message.id)
+        messageController.deleteMessage()
+    }
+
+    public func resendMessage(_ message: ChatMessage) {
+        guard let cid = message.cid else { return }
+        let messageController = chatClient.messageController(cid: cid, messageId: message.id)
+        messageController.resendMessage()
+    }
+
+    public func editMessage(_ message: ChatMessage) {
+        messageActionExecuted(.init(message: message, identifier: "edit"))
+    }
+
     public func messageActionExecuted(_ messageActionInfo: MessageActionInfo) {
         utils.messageActionsResolver.resolveMessageAction(
             info: messageActionInfo,
@@ -709,19 +729,18 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
                  .remove(_, index: _):
                 return true
             case let .update(message, index: index):
-                let animateReactions = message.reactionScoresId != messages[index.row].reactionScoresId
+                guard index.row >= messages.startIndex, index.row < messages.endIndex else { continue }
+                let existingDisplayedMessage = messages[index.row]
+                let animateReactions = message.reactionScoresId != existingDisplayedMessage.reactionScoresId
                     && utils.messageListConfig.messageDisplayOptions.shouldAnimateReactions
-                if index.row < messages.count,
-                   message.messageId != messages[index.row].messageId
+                if animateReactions,
+                   message.messageId != existingDisplayedMessage.messageId
                    || message.type == .ephemeral
                    || !message.linkAttachments.isEmpty {
-                    if index.row < messages.count
-                        && animateReactions {
-                        animateChanges = message.linkAttachments.isEmpty
-                    }
+                    animateChanges = message.linkAttachments.isEmpty
                 }
-            default:
-                break
+            case .move(_, fromIndex: _, toIndex: _):
+                continue
             }
         }
         

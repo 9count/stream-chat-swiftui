@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Combine
@@ -38,7 +38,7 @@ public struct GiphyCommandHandler: CommandHandler {
     }
 
     public func canHandleCommand(in text: String, caretLocation: Int) -> ComposerCommand? {
-        if text == id {
+        if text.hasPrefix(id) {
             return ComposerCommand(
                 id: id,
                 typingSuggestion: TypingSuggestion(

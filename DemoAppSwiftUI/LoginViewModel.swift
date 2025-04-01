@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -10,10 +10,16 @@ class LoginViewModel: ObservableObject {
 
     @Published var demoUsers = UserCredentials.builtInUsers
     @Published var loading = false
+    @Published var showsConfiguration = false
 
     @Injected(\.chatClient) var chatClient
 
     func demoUserTapped(_ user: UserCredentials) {
+        if user.isGuest {
+            connectGuestUser(withCredentials: user)
+            return
+        }
+
         connectUser(withCredentials: user)
     }
 
@@ -23,9 +29,14 @@ class LoginViewModel: ObservableObject {
         LogConfig.level = .warning
 
         chatClient.connectUser(
-            userInfo: .init(id: credentials.id, name: credentials.name, imageURL: credentials.avatarURL),
+            userInfo: .init(
+                id: credentials.id,
+                name: credentials.name,
+                imageURL: credentials.avatarURL,
+                language: AppConfiguration.default.translationLanguage
+            ),
             token: token
-        ) { error in
+        ) { [weak self] error in
             if let error = error {
                 log.error("connecting the user failed \(error)")
                 return
@@ -35,6 +46,27 @@ class LoginViewModel: ObservableObject {
                 withAnimation {
                     self?.loading = false
                     UnsecureRepository.shared.save(user: credentials)
+                    AppState.shared.userState = .loggedIn
+                }
+            }
+        }
+    }
+
+    private func connectGuestUser(withCredentials credentials: UserCredentials) {
+        loading = true
+        LogConfig.level = .warning
+
+        chatClient.connectGuestUser(
+            userInfo: .init(id: credentials.id, name: credentials.name)
+        ) { [weak self] error in
+            if let error = error {
+                log.error("connecting the user failed \(error)")
+                return
+            }
+
+            DispatchQueue.main.async { [weak self] in
+                withAnimation {
+                    self?.loading = false
                     AppState.shared.userState = .loggedIn
                 }
             }

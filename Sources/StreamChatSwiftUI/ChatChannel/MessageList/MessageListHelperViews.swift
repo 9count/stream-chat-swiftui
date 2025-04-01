@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -26,7 +26,7 @@ public struct MessageAuthorAndDateView: View {
             }
             Spacer()
         }
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("MessageAuthorAndDateView")
     }
 }
@@ -34,7 +34,6 @@ public struct MessageAuthorAndDateView: View {
 /// View that displays the message author.
 public struct MessageAuthorView: View {
     
-    @Injected(\.utils) private var utils
     @Injected(\.fonts) private var fonts
     @Injected(\.colors) private var colors
     
@@ -44,8 +43,12 @@ public struct MessageAuthorView: View {
         self.message = message
     }
     
+    var authorName: String {
+        message.author.name ?? message.author.id
+    }
+    
     public var body: some View {
-        Text(utils.messageCachingUtils.authorName(for: message))
+        Text(authorName)
             .lineLimit(1)
             .font(fonts.footnoteBold)
             .foregroundColor(Color(colors.textLowEmphasis))
@@ -66,7 +69,9 @@ struct MessageDateView: View {
     
     var text: String {
         var text = dateFormatter.string(from: message.createdAt)
-        let showMessageEditedLabel = utils.messageListConfig.isMessageEditedLabelEnabled
+        let messageListConfig = utils.messageListConfig
+        let showMessageEditedLabel = messageListConfig.isMessageEditedLabelEnabled
+            && !messageListConfig.skipEditedMessageLabel(message)
             && message.textUpdatedAt != nil
             && !message.isDeleted
         if showMessageEditedLabel {
@@ -75,11 +80,16 @@ struct MessageDateView: View {
         return text
     }
     
+    var accessibilityLabel: String {
+        L10n.Message.Cell.sentAt(text)
+    }
+    
     var body: some View {
         Text(text)
             .font(fonts.footnote)
             .foregroundColor(Color(colors.textLowEmphasis))
             .animation(nil)
+            .accessibilityLabel(Text(accessibilityLabel))
             .accessibilityIdentifier("MessageDateView")
     }
 }
@@ -114,6 +124,11 @@ public struct MessageReadIndicatorView: View {
             .customizable()
             .foregroundColor(!readUsers.isEmpty ? colors.tintColor : Color(colors.textLowEmphasis))
             .frame(height: 16)
+            .accessibilityLabel(
+                Text(
+                    readUsers.isEmpty ? L10n.Message.ReadStatus.seenByNoOne : L10n.Message.ReadStatus.seenByOthers
+                )
+            )
             .accessibilityIdentifier("readIndicatorCheckmark")
         }
         .accessibilityElement(children: .contain)
@@ -156,6 +171,7 @@ public struct MessagePinDetailsView: View {
             Image(uiImage: images.pin)
                 .customizable()
                 .frame(maxHeight: 12)
+                .accessibilityHidden(true)
             Text("\(L10n.Message.Cell.pinnedBy) \(message.pinDetails?.pinnedBy.name ?? L10n.Message.Cell.unknownPin)")
                 .font(fonts.footnote)
         }
@@ -191,10 +207,18 @@ extension View {
     public func textColor(for message: ChatMessage) -> Color {
         @Injected(\.colors) var colors
         
+        if message.isDeleted {
+            return Color(colors.textLowEmphasis)
+        }
         if message.isSentByCurrentUser {
             return Color(colors.messageCurrentUserTextColor)
         } else {
             return Color(colors.messageOtherUserTextColor)
         }
+    }
+    
+    func textColor(currentUser: Bool) -> Color {
+        @Injected(\.colors) var colors
+        return currentUser ? Color(colors.messageCurrentUserTextColor) : Color(colors.messageOtherUserTextColor)
     }
 }

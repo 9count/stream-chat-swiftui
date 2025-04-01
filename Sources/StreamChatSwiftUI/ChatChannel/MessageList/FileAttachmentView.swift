@@ -1,14 +1,11 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
 import SwiftUI
 
 public struct FileAttachmentsContainer<Factory: ViewFactory>: View {
-
-    @Injected(\.utils) private var utils
-
     var factory: Factory
     var message: ChatMessage
     var width: CGFloat
@@ -31,7 +28,7 @@ public struct FileAttachmentsContainer<Factory: ViewFactory>: View {
 
     public var body: some View {
         VStack(alignment: message.alignmentInBubble) {
-            if let quotedMessage = utils.messageCachingUtils.quotedMessage(for: message) {
+            if let quotedMessage = message.quotedMessage {
                 factory.makeQuotedMessageView(
                     quotedMessage: quotedMessage,
                     fillAvailableSpace: !message.attachmentCounts.isEmpty,
@@ -100,6 +97,9 @@ public struct FileAttachmentView: View {
             .onTapGesture {
                 fullScreenShown = true
             }
+            .accessibilityAction {
+                fullScreenShown = true
+            }
 
             Spacer()
         }
@@ -137,6 +137,7 @@ public struct FileAttachmentDisplayView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 34, height: 40)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
                     .font(fonts.bodyBold)
@@ -149,6 +150,7 @@ public struct FileAttachmentDisplayView: View {
             }
             Spacer()
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var previewImage: UIImage {

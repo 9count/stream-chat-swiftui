@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SwiftUI
@@ -11,5 +11,9 @@ extension View {
             width: defaultScreenSize.width,
             height: defaultScreenSize.height
         )
+    }
+    
+    func applySize(_ size: CGSize) -> some View {
+        frame(width: size.width, height: size.height)
     }
 }

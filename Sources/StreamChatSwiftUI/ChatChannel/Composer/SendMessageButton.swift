@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import SwiftUI
@@ -31,7 +31,7 @@ public struct SendMessageButton: View {
                 )
         }
         .disabled(!enabled)
-        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(Text(L10n.Composer.Placeholder.message))
         .accessibilityIdentifier("SendMessageButton")
     }
 

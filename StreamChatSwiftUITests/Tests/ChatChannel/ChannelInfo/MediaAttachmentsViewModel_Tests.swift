@@ -1,10 +1,11 @@
 //
-// Copyright © 2024 Stream.io Inc. All rights reserved.
+// Copyright © 2025 Stream.io Inc. All rights reserved.
 //
 
 import Combine
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import XCTest
 
 class MediaAttachmentsViewModel_Tests: StreamChatTestCase {
