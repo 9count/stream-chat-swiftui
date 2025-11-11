@@ -140,7 +140,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                                 channel: channel,
                                 message: message,
                                 width: width,
-                                showsAllInfo: showsAllData(for: message),
+                                showsAllInfo: showsAllData(for: message) || (messages.count == 1 && !message.isSentByCurrentUser),
                                 isInThread: isMessageThread,
                                 scrolledId: $scrolledId,
                                 quotedMessage: $quotedMessage,
@@ -206,6 +206,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     .delayedRendering()
                     .modifier(factory.makeMessageListModifier())
                     .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
+
+                    factory.makeInitialMessageView(channel: channel)
+                        .flippedUpsideDown()
                 }
                 .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil)))
                 .background(
@@ -344,7 +347,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
             return true
         }
         let groupInfo = messagesGroupingInfo[message.id] ?? []
-        return groupInfo.contains(firstMessageKey) == true
+        return groupInfo.contains(lastMessageKey)
     }
 
     private func showsLastInGroupInfo(
