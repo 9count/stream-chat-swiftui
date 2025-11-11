@@ -7,7 +7,6 @@ import SwiftUI
 
 /// Defines methods for resolving message actions after execution.
 public protocol MessageActionsResolving {
-
     /// Resolves an executed message action.
     /// - Parameters:
     ///  - info: the message action info.
@@ -20,7 +19,6 @@ public protocol MessageActionsResolving {
 
 /// Default implementation of the `MessageActionsResolving` protocol.
 public class MessageActionsResolver: MessageActionsResolving {
-
     public init() {
         // Public init.
     }
@@ -41,6 +39,9 @@ public class MessageActionsResolver: MessageActionsResolving {
             }
         } else if info.identifier == MessageActionId.markUnread {
             viewModel.firstUnreadMessageId = info.message.messageId
+            viewModel.currentUserMarkedMessageUnread = true
+            viewModel.skipHighlightMessageId = info.message.messageId
+            viewModel.scrolledId = info.message.messageId
         }
 
         viewModel.reactionsShown = false

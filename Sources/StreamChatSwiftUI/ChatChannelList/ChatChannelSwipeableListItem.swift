@@ -14,6 +14,9 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
 
     @GestureState private var offset: CGSize = .zero
 
+    /// The channel id of the swipable item.
+    ///
+    /// - Note: Setting this to nil will reset the swiped state.
     @Binding var swipedChannelId: String?
 
     private let numberOfTrailingItems: Int
@@ -266,7 +269,6 @@ public enum SwipeDirection {
 }
 
 public struct TrailingSwipeActionsView: View {
-
     @Injected(\.colors) private var colors
 
     var channel: ChatChannel
@@ -285,9 +287,9 @@ public struct TrailingSwipeActionsView: View {
                             leftButtonTapped(channel)
                         }
                     })
-                        .frame(width: buttonWidth)
-                        .foregroundColor(Color(colors.text))
-                        .background(Color(colors.background1))
+                    .frame(width: buttonWidth)
+                    .foregroundColor(Color(colors.text))
+                    .background(Color(colors.background1))
 
                     if channel.ownCapabilities.contains(.deleteChannel) {
                         ActionItemButton(imageName: "trash", action: {
@@ -295,9 +297,9 @@ public struct TrailingSwipeActionsView: View {
                                 rightButtonTapped(channel)
                             }
                         })
-                            .frame(width: buttonWidth)
-                            .foregroundColor(Color(colors.textInverted))
-                            .background(Color(colors.alert))
+                        .frame(width: buttonWidth)
+                        .foregroundColor(Color(colors.textInverted))
+                        .background(Color(colors.alert))
                     }
                 }
             }

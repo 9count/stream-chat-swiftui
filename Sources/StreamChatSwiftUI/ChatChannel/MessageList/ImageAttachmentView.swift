@@ -55,7 +55,7 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                 }
 
                 if !message.text.isEmpty {
-                    AttachmentTextView(message: message)
+                    AttachmentTextView(factory: factory, message: message)
                         .frame(width: width)
                 }
             }
@@ -70,24 +70,19 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
         .fullScreenCover(isPresented: $galleryShown, onDismiss: {
             self.selectedIndex = 0
         }) {
-            GalleryView(
+            factory.makeGalleryView(
                 mediaAttachments: sources,
-                author: message.author,
+                message: message,
                 isShown: $galleryShown,
-                selected: selectedIndex
+                options: .init(selectedIndex: selectedIndex)
             )
         }
         .accessibilityIdentifier("ImageAttachmentContainer")
     }
-    
+
     private var sources: [MediaAttachment] {
         let videoSources = message.videoAttachments.map { attachment in
-            let url: URL
-            if let state = attachment.uploadingState {
-                url = state.localFileURL
-            } else {
-                url = attachment.videoURL
-            }
+            let url: URL = attachment.videoURL
             return MediaAttachment(
                 url: url,
                 type: .video,
@@ -95,12 +90,7 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
             )
         }
         let imageSources = message.imageAttachments.map { attachment in
-            let url: URL
-            if let state = attachment.uploadingState {
-                url = state.localFileURL
-            } else {
-                url = attachment.imageURL
-            }
+            let url: URL = attachment.imageURL
             return MediaAttachment(
                 url: url,
                 type: .image,
@@ -111,22 +101,23 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
     }
 }
 
-public struct AttachmentTextView: View {
-
+public struct AttachmentTextView<Factory: ViewFactory>: View {
     @Injected(\.colors) private var colors
     @Injected(\.fonts) private var fonts
 
+    var factory: Factory
     var message: ChatMessage
     let injectedBackgroundColor: UIColor?
 
-    public init(message: ChatMessage, injectedBackgroundColor: UIColor? = nil) {
+    public init(factory: Factory = DefaultViewFactory.shared, message: ChatMessage, injectedBackgroundColor: UIColor? = nil) {
+        self.factory = factory
         self.message = message
         self.injectedBackgroundColor = injectedBackgroundColor
     }
 
     public var body: some View {
         HStack {
-            StreamTextView(message: message)
+            factory.makeAttachmentTextView(options: .init(mesage: message))
                 .standardPadding()
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
@@ -160,7 +151,7 @@ struct ImageAttachmentView: View {
     let message: ChatMessage
     let sources: [MediaAttachment]
     let width: CGFloat
-    var imageTapped: ((Int) -> Void)? = nil
+    var imageTapped: ((Int) -> Void)?
 
     private let spacing: CGFloat = 2
     private let maxDisplayedImages = 4
@@ -306,7 +297,7 @@ struct ImageAttachmentView: View {
 struct SingleImageView: View {
     let source: MediaAttachment
     let width: CGFloat
-    var imageTapped: ((Int) -> Void)? = nil
+    var imageTapped: ((Int) -> Void)?
     var index: Int?
 
     private var height: CGFloat {
@@ -322,6 +313,7 @@ struct SingleImageView: View {
             index: index
         )
         .frame(width: width, height: height)
+        .id(source.id)
         .accessibilityIdentifier("SingleImageView")
     }
 }
@@ -330,7 +322,7 @@ struct MultiImageView: View {
     let source: MediaAttachment
     let width: CGFloat
     let height: CGFloat
-    var imageTapped: ((Int) -> Void)? = nil
+    var imageTapped: ((Int) -> Void)?
     var index: Int?
 
     var body: some View {
@@ -342,6 +334,7 @@ struct MultiImageView: View {
             index: index
         )
         .frame(width: width, height: height)
+        .id(source.id)
         .accessibilityIdentifier("MultiImageView")
     }
 }
@@ -357,7 +350,7 @@ struct LazyLoadingImage: View {
     let height: CGFloat
     var resize: Bool = true
     var shouldSetFrame: Bool = true
-    var imageTapped: ((Int) -> Void)? = nil
+    var imageTapped: ((Int) -> Void)?
     var index: Int?
     var onImageLoaded: (UIImage) -> Void = { _ in /* Default implementation. */ }
 
@@ -369,8 +362,9 @@ struct LazyLoadingImage: View {
                     // NOTE: needed because of bug with SwiftUI.
                     // The click area expands outside the image view (although not visible).
                     Rectangle()
-                        .opacity(0.000001)
+                        .fill(.clear)
                         .frame(width: width, height: height)
+                        .contentShape(.rect)
                         .clipped()
                         .allowsHitTesting(true)
                         .highPriorityGesture(
@@ -393,7 +387,7 @@ struct LazyLoadingImage: View {
                     ProgressView()
                 }
             }
-            
+
             if source.type == .video && width > 64 && source.uploadingState == nil {
                 VideoPlayIcon()
                     .accessibilityHidden(true)
@@ -433,19 +427,28 @@ struct LazyLoadingImage: View {
 }
 
 extension ChatMessage {
-
     var alignmentInBubble: HorizontalAlignment {
         .leading
     }
 }
 
-struct MediaAttachment {
+public struct MediaAttachment: Identifiable, Equatable {
     @Injected(\.utils) var utils
-    
-    let url: URL
-    let type: MediaAttachmentType
-    var uploadingState: AttachmentUploadingState?
-    
+
+    public let url: URL
+    public let type: MediaAttachmentType
+    public var uploadingState: AttachmentUploadingState?
+
+    public init(url: URL, type: MediaAttachmentType, uploadingState: AttachmentUploadingState? = nil) {
+        self.url = url
+        self.type = type
+        self.uploadingState = uploadingState
+    }
+
+    public var id: String {
+        url.absoluteString
+    }
+
     func generateThumbnail(
         resize: Bool,
         preferredSize: CGSize,
@@ -466,9 +469,46 @@ struct MediaAttachment {
             )
         }
     }
+
+    public static func == (lhs: MediaAttachment, rhs: MediaAttachment) -> Bool {
+        lhs.url == rhs.url
+            && lhs.type == rhs.type
+            && lhs.uploadingState == rhs.uploadingState
+    }
 }
 
-enum MediaAttachmentType {
-    case image
-    case video
+extension MediaAttachment {
+    init(from attachment: ChatMessageImageAttachment) {
+        let url: URL
+        if let state = attachment.uploadingState {
+            url = state.localFileURL
+        } else {
+            url = attachment.imageURL
+        }
+        self.init(
+            url: url,
+            type: .image,
+            uploadingState: attachment.uploadingState
+        )
+    }
+}
+
+public struct MediaAttachmentType: RawRepresentable {
+    public let rawValue: String
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public static let image = Self(rawValue: "image")
+    public static let video = Self(rawValue: "video")
+}
+
+/// Options for the gallery view.
+public struct MediaViewsOptions {
+    /// The index of the selected media item.
+    public let selectedIndex: Int
+
+    public init(selectedIndex: Int) {
+        self.selectedIndex = selectedIndex
+    }
 }

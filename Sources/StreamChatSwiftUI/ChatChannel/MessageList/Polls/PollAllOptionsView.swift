@@ -6,7 +6,6 @@ import StreamChat
 import SwiftUI
 
 struct PollAllOptionsView<Factory: ViewFactory>: View {
-    
     @Injected(\.colors) var colors
     @Injected(\.fonts) var fonts
     
@@ -17,7 +16,7 @@ struct PollAllOptionsView<Factory: ViewFactory>: View {
     let factory: Factory
     
     var body: some View {
-        NavigationView {
+        NavigationContainerView(embedInNavigationView: true) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 32) {
                     HStack {
@@ -44,10 +43,11 @@ struct PollAllOptionsView<Factory: ViewFactory>: View {
                 }
                 .padding()
             }
-            .toolbar {
+            .toolbarThemed {
                 ToolbarItem(placement: .principal) {
                     Text(L10n.Message.Polls.Toolbar.optionsTitle)
                         .bold()
+                        .foregroundColor(Color(colors.navigationBarTitle))
                 }
                 
                 ToolbarItem(placement: .navigationBarLeading) {

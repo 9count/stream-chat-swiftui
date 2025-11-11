@@ -6,7 +6,6 @@ import StreamChat
 import SwiftUI
 
 public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
-
     @Injected(\.utils) private var utils
     @Injected(\.chatClient) private var chatClient
     @Injected(\.colors) private var colors
@@ -255,13 +254,19 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                 .frame(maxWidth: .infinity)
                 .clipped()
                 .onChange(of: scrolledId) { scrolledId in
-                    if let scrolledId = scrolledId {
-                        let shouldJump = onJumpToMessage?(scrolledId) ?? false
-                        if !shouldJump {
-                            return
-                        }
-                        withAnimation {
-                            scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
+                    DispatchQueue.main.async {
+                        if let scrolledId = scrolledId {
+                            let shouldJump = onJumpToMessage?(scrolledId) ?? false
+                            if !shouldJump {
+                                return
+                            }
+                            withAnimation {
+                                if messages.first?.id == scrolledId {
+                                    scrollView.scrollTo(scrolledId, anchor: .top)
+                                } else {
+                                    scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
+                                }
+                            }
                         }
                     }
                 }
@@ -311,7 +316,6 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                 ) : nil
         )
         .modifier(factory.makeMessageListContainerModifier())
-        .dismissKeyboardOnTap(enabled: keyboardShown)
         .onDisappear {
             messageRenderingUtil.update(previousTopMessage: nil)
         }
@@ -403,7 +407,6 @@ struct ScrollPositionModifier: ViewModifier {
 }
 
 struct ScrollTargetLayoutModifier: ViewModifier {
-    
     var enabled: Bool
     
     func body(content: Content) -> some View {
@@ -430,7 +433,6 @@ public enum ScrollDirection {
 }
 
 public struct NewMessagesIndicator: View {
-            
     @Injected(\.colors) var colors
     
     @Binding var newMessagesStartId: String?
@@ -565,7 +567,6 @@ struct TypingIndicatorBottomView: View {
 }
 
 private class MessageRenderingUtil {
-
     private var previousTopMessage: ChatMessage?
 
     static let shared = MessageRenderingUtil()
@@ -606,6 +607,10 @@ private struct ChannelTranslationLanguageKey: EnvironmentKey {
     static let defaultValue: TranslationLanguage? = nil
 }
 
+private struct MessageViewModelKey: EnvironmentKey {
+    static let defaultValue: MessageViewModel? = nil
+}
+
 extension EnvironmentValues {
     var channelTranslationLanguage: TranslationLanguage? {
         get {
@@ -613,6 +618,15 @@ extension EnvironmentValues {
         }
         set {
             self[ChannelTranslationLanguageKey.self] = newValue
+        }
+    }
+
+    var messageViewModel: MessageViewModel? {
+        get {
+            self[MessageViewModelKey.self]
+        }
+        set {
+            self[MessageViewModelKey.self] = newValue
         }
     }
 }

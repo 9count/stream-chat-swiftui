@@ -17,7 +17,6 @@ public enum AttachmentPickerState {
 
 /// Struct representing an asset added to the composer.
 public struct AddedAsset: Identifiable, Equatable {
-    
     public static func == (lhs: AddedAsset, rhs: AddedAsset) -> Bool {
         lhs.id == rhs.id
     }
@@ -27,25 +26,34 @@ public struct AddedAsset: Identifiable, Equatable {
     public let url: URL
     public let type: AssetType
     public var extraData: [String: RawJSON] = [:]
-    
+
+    /// The payload of the attachment, in case the attachment has been uploaded to server already.
+    /// This is mostly used when editing an existing message that contains attachments.
+    public var payload: AttachmentPayload?
+
     public init(
         image: UIImage,
         id: String,
         url: URL,
         type: AssetType,
-        extraData: [String: RawJSON] = [:]
+        extraData: [String: RawJSON] = [:],
+        payload: AttachmentPayload? = nil
     ) {
         self.image = image
         self.id = id
         self.url = url
         self.type = type
         self.extraData = extraData
+        self.payload = payload
     }
 }
 
 extension AddedAsset {
     func toAttachmentPayload() throws -> AnyAttachmentPayload {
-        try AnyAttachmentPayload(
+        if let payload = self.payload {
+            return AnyAttachmentPayload(payload: payload)
+        }
+        return try AnyAttachmentPayload(
             localFileURL: url,
             attachmentType: type == .video ? .video : .image,
             extraData: extraData
@@ -54,31 +62,7 @@ extension AddedAsset {
 }
 
 extension AnyChatMessageAttachment {
-    func toAddedAsset() -> AddedAsset? {
-        if let imageAttachment = attachment(payloadType: ImageAttachmentPayload.self),
-           let imageData = try? Data(contentsOf: imageAttachment.imageURL),
-           let image = UIImage(data: imageData) {
-            return AddedAsset(
-                image: image,
-                id: imageAttachment.id.rawValue,
-                url: imageAttachment.imageURL,
-                type: .image,
-                extraData: imageAttachment.extraData ?? [:]
-            )
-        } else if let videoAttachment = attachment(payloadType: VideoAttachmentPayload.self),
-                  let thumbnail = imageThumbnail(for: videoAttachment.payload) {
-            return AddedAsset(
-                image: thumbnail,
-                id: videoAttachment.id.rawValue,
-                url: videoAttachment.videoURL,
-                type: .video,
-                extraData: videoAttachment.extraData ?? [:]
-            )
-        }
-        return nil
-    }
-
-    private func imageThumbnail(for videoAttachmentPayload: VideoAttachmentPayload) -> UIImage? {
+    func imageThumbnail(for videoAttachmentPayload: VideoAttachmentPayload) -> UIImage? {
         if let thumbnailURL = videoAttachmentPayload.thumbnailURL, let data = try? Data(contentsOf: thumbnailURL) {
             return UIImage(data: data)
         }
@@ -102,7 +86,6 @@ public enum AssetType {
 }
 
 public struct CustomAttachment: Identifiable, Equatable {
-    
     public static func == (lhs: CustomAttachment, rhs: CustomAttachment) -> Bool {
         lhs.id == rhs.id
     }

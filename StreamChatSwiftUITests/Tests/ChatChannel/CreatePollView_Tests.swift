@@ -9,7 +9,6 @@ import SwiftUI
 import XCTest
 
 final class CreatePollView_Tests: StreamChatTestCase {
-
     func test_createPollView_snapshot() {
         // Given
         let view = CreatePollView(
@@ -82,5 +81,18 @@ final class CreatePollView_Tests: StreamChatTestCase {
         
         // Then
         AssertSnapshot(view, variants: .onlyUserInterfaceStyles)
+    }
+    
+    func test_createPollView_themedNavigationBarSnapshot() {
+        // Given
+        setThemedNavigationBarAppearance()
+        let view = CreatePollView(
+            chatController: .init(channelQuery: .init(cid: .unique), channelListQuery: nil, client: chatClient),
+            messageController: nil
+        )
+        .applyDefaultSize()
+        
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
     }
 }

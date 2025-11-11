@@ -107,6 +107,16 @@ internal enum L10n {
       internal static var pollYouCreated: String { L10n.tr("Localizable", "channel.item.poll-you-created") }
       /// You voted:
       internal static var pollYouVoted: String { L10n.tr("Localizable", "channel.item.poll-you-voted") }
+      /// Remove User
+      internal static var removeUser: String { L10n.tr("Localizable", "channel.item.remove-user") }
+      /// Are you sure you want to remove %@ from %@?
+      internal static func removeUserConfirmationMessage(_ p1: Any, _ p2: Any) -> String {
+        return L10n.tr("Localizable", "channel.item.remove-user-confirmation-message", String(describing: p1), String(describing: p2))
+      }
+      /// Remove User
+      internal static var removeUserConfirmationTitle: String { L10n.tr("Localizable", "channel.item.remove-user-confirmation-title") }
+      /// Send Direct Message
+      internal static var sendDirectMessage: String { L10n.tr("Localizable", "channel.item.send-direct-message") }
       /// are typing ...
       internal static var typingPlural: String { L10n.tr("Localizable", "channel.item.typing-plural") }
       /// is typing ...
@@ -247,6 +257,8 @@ internal enum L10n {
       internal static var giphy: String { L10n.tr("Localizable", "composer.placeholder.giphy") }
       /// Send a message
       internal static var message: String { L10n.tr("Localizable", "composer.placeholder.message") }
+      /// You can't send messages in this channel
+      internal static var messageDisabled: String { L10n.tr("Localizable", "composer.placeholder.messageDisabled") }
       /// Slow mode ON
       internal static var slowMode: String { L10n.tr("Localizable", "composer.placeholder.slow-mode") }
     }
@@ -275,8 +287,8 @@ internal enum L10n {
       internal static var question: String { L10n.tr("Localizable", "composer.polls.question") }
       /// Suggest an option
       internal static var suggestOption: String { L10n.tr("Localizable", "composer.polls.suggest-option") }
-      /// Type a number from 1 and 10
-      internal static var typeNumberFrom1And10: String { L10n.tr("Localizable", "composer.polls.type-number-from-1-and-10") }
+      /// Type a number from 2 and 10
+      internal static var typeNumberMinMaxRange: String { L10n.tr("Localizable", "composer.polls.type-number-min-max-range") }
     }
     internal enum Quoted {
       /// Giphy
@@ -352,6 +364,10 @@ internal enum L10n {
     internal static var deletedMessagePlaceholder: String { L10n.tr("Localizable", "message.deleted-message-placeholder") }
     /// Only visible to you
     internal static var onlyVisibleToYou: String { L10n.tr("Localizable", "message.only-visible-to-you") }
+    /// Show Original
+    internal static var showOriginal: String { L10n.tr("Localizable", "message.showOriginal") }
+    /// Show Translation
+    internal static var showTranslation: String { L10n.tr("Localizable", "message.showTranslation") }
     /// Translated to %@
     internal static func translatedTo(_ p1: Any) -> String {
       return L10n.tr("Localizable", "message.translatedTo", String(describing: p1))

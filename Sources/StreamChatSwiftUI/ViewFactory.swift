@@ -363,6 +363,15 @@ public protocol ViewFactory: AnyObject {
     /// - Returns: view shown in the date and author indicator slot.
     func makeMessageAuthorAndDateView(for message: ChatMessage) -> MessageAuthorAndDateViewType
 
+    associatedtype MessageTranslationFooterViewType: View
+    /// Creates a view to display translation information below a message if it has been translated.
+    /// - Parameters:
+    ///   - messageViewModel: The message view model used to display information about the message.
+    /// - Returns: A view to display translation information of the message.
+    func makeMessageTranslationFooterView(
+        messageViewModel: MessageViewModel
+    ) -> MessageTranslationFooterViewType
+
     associatedtype LastInGroupHeaderView: View
     /// Creates a view shown as a header of the last message in a group.
     /// - Parameter message: the chat message for which the header will be displayed.
@@ -443,6 +452,73 @@ public protocol ViewFactory: AnyObject {
         availableWidth: CGFloat,
         scrolledId: Binding<String?>
     ) -> VideoAttachmentViewType
+    
+    associatedtype GalleryViewType: View
+    /// Creates the gallery view.
+    /// - Parameters:
+    ///  - mediaAttachments: the media attachments that will be displayed.
+    ///  - message: the message whose attachments will be displayed.
+    ///  - isShown: whether the gallery is shown.
+    ///  - options: additional options used to configure the gallery view.
+    ///  - Returns: view displayed in the gallery slot.
+    func makeGalleryView(
+        mediaAttachments: [MediaAttachment],
+        message: ChatMessage,
+        isShown: Binding<Bool>,
+        options: MediaViewsOptions
+    ) -> GalleryViewType
+    
+    associatedtype GalleryHeaderViewType: View
+    /// Creates the gallery header view presented with a sheet.
+    /// - Parameters:
+    ///  - title: The title displayed in the header.
+    ///  - subtitle: The subtitle displayed in the header.
+    ///  - shown: Binding controlling whether the gallery is shown.
+    /// - Returns: View displayed in the gallery header slot.
+    func makeGalleryHeaderView(
+        title: String,
+        subtitle: String,
+        shown: Binding<Bool>
+    ) -> GalleryHeaderViewType
+    
+    associatedtype VideoPlayerViewType: View
+    /// Creates the video player view.
+    /// - Parameters:
+    ///  - attachment: the video attachment that will be displayed.
+    ///  - message: the message whose attachments will be displayed.
+    ///  - isShown: whether the video player is shown.
+    ///  - options: additional options used to configure the gallery view.
+    ///  - Returns: view displayed in the video player slot.
+    func makeVideoPlayerView(
+        attachment: ChatMessageVideoAttachment,
+        message: ChatMessage,
+        isShown: Binding<Bool>,
+        options: MediaViewsOptions
+    ) -> VideoPlayerViewType
+    
+    associatedtype VideoPlayerHeaderViewType: View
+    /// Creates the video player header view presented with a sheet.
+    /// - Parameters:
+    ///  - title: The title displayed in the header.
+    ///  - subtitle: The subtitle displayed in the header.
+    ///  - shown: Binding controlling whether the video player is shown.
+    /// - Returns: View displayed in the video player header slot.
+    func makeVideoPlayerHeaderView(
+        title: String,
+        subtitle: String,
+        shown: Binding<Bool>
+    ) -> VideoPlayerHeaderViewType
+    
+    associatedtype VideoPlayerFooterViewType: View
+    /// Creates the video player footer view presented with a sheet.
+    /// - Parameters:
+    ///  - attachment: the video attachment that will be displayed.
+    ///  - shown: Binding controlling whether the video player is shown.
+    /// - Returns: View displayed in the video player footer slot.
+    func makeVideoPlayerFooterView(
+        attachment: ChatMessageVideoAttachment,
+        shown: Binding<Bool>
+    ) -> VideoPlayerFooterViewType
 
     associatedtype DeletedMessageViewType: View
     /// Creates the deleted message view.
@@ -1099,4 +1175,23 @@ public protocol ViewFactory: AnyObject {
     associatedtype ThreadListDividerItem: View
     /// Creates the thread list divider item.
     func makeThreadListDividerItem() -> ThreadListDividerItem
+    
+    associatedtype AddUsersViewType: View
+    /// Creates a view for adding users to a chat or channel.
+    /// - Parameters:
+    ///   - options: Configuration options for the "add users" view, such as loaded user ids.
+    ///   - onUserTap: A closure that is called when a `ChatUser` is tapped in the list.
+    /// - Returns: The view shown in the add users slot.
+    func makeAddUsersView(
+        options: AddUsersOptions,
+        onUserTap: @escaping (ChatUser) -> Void
+    ) -> AddUsersViewType
+    
+    associatedtype AttachmentTextViewType: View
+    /// Creates a view for displaying the text of an attachment.
+    /// - Parameter options: Configuration options for the attachment text view, such as message.
+    /// - Returns: The view shown in the attachment text slot.
+    func makeAttachmentTextView(
+        options: AttachmentTextViewOptions
+    ) -> AttachmentTextViewType
 }

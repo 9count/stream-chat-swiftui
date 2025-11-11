@@ -44,6 +44,7 @@ public struct ChatThreadListNavigatableItem<ThreadListItem: View, ThreadDestinat
             } label: {
                 EmptyView()
             }
+            .opacity(0) // Fixes showing accessibility button shape
         }
         .foregroundColor(.black)
     }
@@ -60,7 +61,6 @@ public struct ThreadSelectionInfo: Identifiable {
 }
 
 extension ThreadSelectionInfo: Hashable, Equatable {
-
     public static func == (lhs: ThreadSelectionInfo, rhs: ThreadSelectionInfo) -> Bool {
         lhs.id == rhs.id
     }

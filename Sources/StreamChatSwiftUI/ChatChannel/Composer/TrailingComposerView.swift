@@ -6,7 +6,6 @@ import StreamChat
 import SwiftUI
 
 public struct TrailingComposerView: View {
-    
     @Injected(\.utils) private var utils
         
     @EnvironmentObject var viewModel: MessageComposerViewModel
@@ -18,7 +17,7 @@ public struct TrailingComposerView: View {
     
     public var body: some View {
         Group {
-            if viewModel.cooldownDuration == 0 {
+            if viewModel.cooldownDuration == 0 && viewModel.isSendMessageEnabled {
                 HStack(spacing: 16) {
                     SendMessageButton(
                         enabled: viewModel.sendButtonEnabled,
@@ -29,7 +28,7 @@ public struct TrailingComposerView: View {
                     }
                 }
                 .padding(.bottom, 8)
-            } else {
+            } else if viewModel.cooldownDuration > 0 {
                 SlowModeView(
                     cooldownDuration: viewModel.cooldownDuration
                 )

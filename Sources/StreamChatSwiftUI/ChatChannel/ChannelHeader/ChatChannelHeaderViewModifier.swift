@@ -108,27 +108,47 @@ public struct DefaultChannelHeaderModifier<Factory: ViewFactory>: ChatChannelHea
     }
 
     public func body(content: Content) -> some View {
-        content.toolbar {
-            DefaultChatChannelHeader(
-                factory: factory,
-                channel: channel,
-                headerImage: channelHeaderLoader.image(for: channel),
-                isActive: $isActive
-            )
+        if #available(iOS 26, *) {
+            content
+                .toolbarThemed {
+                    DefaultChatChannelHeader(
+                        factory: factory,
+                        channel: channel,
+                        headerImage: channelHeaderLoader.image(for: channel),
+                        isActive: $isActive
+                    )
+                    #if compiler(>=6.2)
+                    .sharedBackgroundVisibility(.hidden)
+                    #endif
+                }
+        } else {
+            content
+                .toolbarThemed {
+                    DefaultChatChannelHeader(
+                        factory: factory,
+                        channel: channel,
+                        headerImage: channelHeaderLoader.image(for: channel),
+                        isActive: $isActive
+                    )
+                }
         }
     }
 }
 
-struct ChannelTitleView: View {
-
+public struct ChannelTitleView: View {
     @Injected(\.fonts) private var fonts
     @Injected(\.utils) private var utils
     @Injected(\.colors) private var colors
     @Injected(\.chatClient) private var chatClient
 
-    var channel: ChatChannel
-    var shouldShowTypingIndicator: Bool
+    let channel: ChatChannel
+    let shouldShowTypingIndicator: Bool
 
+    public init(channel: ChatChannel, shouldShowTypingIndicator: Bool) {
+        self.channel = channel
+        self.shouldShowTypingIndicator = shouldShowTypingIndicator
+    }
+    
     private var currentUserId: String {
         chatClient.currentUserId ?? ""
     }
@@ -137,10 +157,11 @@ struct ChannelTitleView: View {
         utils.channelNamer
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 2) {
             Text(channelNamer(channel, currentUserId) ?? "")
                 .font(fonts.bodyBold)
+                .foregroundColor(Color(colors.navigationBarTitle))
                 .accessibilityIdentifier("chatName")
 
             if shouldShowTypingIndicator {
@@ -151,7 +172,7 @@ struct ChannelTitleView: View {
             } else {
                 Text(channel.onlineInfoText(currentUserId: currentUserId))
                     .font(fonts.footnote)
-                    .foregroundColor(Color(colors.textLowEmphasis))
+                    .foregroundColor(Color(colors.navigationBarSubtitle))
                     .accessibilityIdentifier("chatOnlineInfo")
             }
         }

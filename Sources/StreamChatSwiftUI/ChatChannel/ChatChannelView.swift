@@ -73,6 +73,10 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                             },
                             onJumpToMessage: viewModel.jumpToMessage(messageId:)
                         )
+                        .environment(\.highlightedMessageId, viewModel.highlightedMessageId)
+                        .dismissKeyboardOnTap(enabled: true) {
+                            hideComposerCommandsAndAttachmentsPicker()
+                        }
                         .overlay(
                             viewModel.currentDateString != nil ?
                                 factory.makeDateIndicatorView(dateString: viewModel.currentDateString!)
@@ -81,7 +85,9 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                     } else {
                         ZStack {
                             factory.makeEmptyMessagesView(for: channel, colors: colors)
-                                .dismissKeyboardOnTap(enabled: keyboardShown)
+                                .dismissKeyboardOnTap(enabled: keyboardShown) {
+                                    hideComposerCommandsAndAttachmentsPicker()
+                                }
                             if viewModel.shouldShowTypingIndicator {
                                 factory.makeTypingIndicatorBottomView(
                                     channel: channel,
@@ -115,7 +121,9 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         messageController: viewModel.messageController,
                         quotedMessage: $viewModel.quotedMessage,
                         editedMessage: $viewModel.editedMessage,
-                        onMessageSent: viewModel.scrollToLastMessage
+                        onMessageSent: {
+                            viewModel.messageSentTapped()
+                        }
                     )
                     .opacity((
                         utils.messageListConfig.messagePopoverEnabled && messageDisplayInfo != nil && !viewModel
@@ -134,8 +142,8 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                     } label: {
                         EmptyView()
                     }
+                    .opacity(0) // Fixes showing accessibility button shape
                 }
-                .accentColor(colors.tintColor)
                 .overlay(
                     viewModel.reactionsShown ?
                         factory.makeReactionsOverlayView(
@@ -178,23 +186,17 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         }
         .onDisappear {
             viewModel.onViewDissappear()
+            viewModel.reactionsShown = false
+            messageDisplayInfo = nil
         }
-        .onChange(of: presentationMode.wrappedValue, perform: { newValue in
-            if newValue.isPresented == false {
-                viewModel.onViewDissappear()
-            } else {
-                viewModel.setActive()
-            }
-        })
         .background(
-            isIphone ?
-                Color.clear.background(
-                    TabBarAccessor { _ in
-                        self.tabBarAvailable = utils.messageListConfig.handleTabBarVisibility
-                    }
-                )
-                .allowsHitTesting(false)
-                : nil
+            Color(colors.background).background(
+                TabBarAccessor { _ in
+                    self.tabBarAvailable = utils.messageListConfig.handleTabBarVisibility
+                }
+            )
+            .ignoresSafeArea(.keyboard)
+            .allowsHitTesting(false)
         )
         .padding(.bottom, keyboardShown || !tabBarAvailable || generatingSnapshot ? 0 : bottomPadding)
         .ignoresSafeArea(.container, edges: tabBarAvailable ? .bottom : [])
@@ -202,21 +204,28 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ChatChannelView")
         .modifier(factory.makeBouncedMessageActionsModifier(viewModel: viewModel))
+        .accentColor(colors.tintColor)
     }
 
     private var generatingSnapshot: Bool {
-        tabBarAvailable && messageDisplayInfo != nil && !viewModel.reactionsShown
+        if #available(iOS 26, *) {
+            return false
+        } else {
+            return tabBarAvailable && messageDisplayInfo != nil && !viewModel.reactionsShown
+        }
     }
 
     private var bottomPadding: CGFloat {
         let bottomPadding = topVC()?.view.safeAreaInsets.bottom ?? 0
         return bottomPadding
     }
-}
 
-extension PresentationMode: Equatable {
-
-    public static func == (lhs: PresentationMode, rhs: PresentationMode) -> Bool {
-        lhs.isPresented == rhs.isPresented
+    private func hideComposerCommandsAndAttachmentsPicker() {
+        NotificationCenter.default.post(
+            name: .attachmentPickerHiddenNotification, object: nil
+        )
+        NotificationCenter.default.post(
+            name: .commandsOverlayHiddenNotification, object: nil
+        )
     }
 }

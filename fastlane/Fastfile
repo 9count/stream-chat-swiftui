@@ -1,4 +1,5 @@
 default_platform :ios
+opt_out_usage
 skip_docs
 
 require 'json'
@@ -7,7 +8,7 @@ require 'xcodeproj'
 import 'Sonarfile'
 import 'Allurefile'
 
-xcode_version = ENV['XCODE_VERSION'] || '16.2'
+xcode_version = ENV['XCODE_VERSION'] || '16.4'
 xcode_project = 'StreamChatSwiftUI.xcodeproj'
 sdk_names = ['StreamChatSwiftUI']
 github_repo = ENV['GITHUB_REPOSITORY'] || 'GetStream/stream-chat-swiftui'
@@ -23,7 +24,7 @@ before_all do |lane|
   if is_ci
     setup_ci
     setup_git_config
-    xcversion(version: xcode_version) unless [:sonar_upload, :allure_launch, :allure_upload, :copyright, :pod_lint].include?(lane)
+    select_xcode(version: xcode_version) unless [:sonar_upload, :allure_launch, :allure_upload, :copyright, :pod_lint, :merge_main].include?(lane)
   end
 end
 
@@ -77,7 +78,6 @@ end
 
 desc 'Release a new version'
 lane :release do |options|
-  previous_version_number = last_git_tag
   artifacts_path = File.absolute_path('../StreamChatSwiftUIArtifacts.json')
   extra_changes = lambda do |release_version|
     # Set the framework version on the artifacts
@@ -86,7 +86,9 @@ lane :release do |options|
     File.write(artifacts_path, JSON.dump(artifacts))
 
     # Set the framework version in SystemEnvironment+Version.swift
-    new_content = File.read(swift_environment_path).gsub!(previous_version_number, release_version).gsub('-SNAPSHOT', '')
+    old_content = File.read(swift_environment_path)
+    current_version = old_content[/version: String = "([^"]+)"/, 1]
+    new_content = old_content.gsub(current_version, release_version)
     File.open(swift_environment_path, 'w') { |f| f.puts(new_content) }
 
     # Update sdk sizes
@@ -112,11 +114,10 @@ end
 
 lane :merge_main do
   merge_main_to_develop
-  current_version = get_sdk_version_from_environment
-  add_snapshot_to_current_version(file_path: swift_environment_path)
+  update_release_version_to_snapshot(file_path: swift_environment_path)
   ensure_git_branch(branch: 'develop')
   sh("git add #{swift_environment_path}")
-  sh("git commit -m 'Add snapshot postfix to v#{current_version}'")
+  sh("git commit -m 'Update release version to snapshot'")
   sh('git push')
 end
 
@@ -217,15 +218,25 @@ lane :match_me do |options|
 end
 
 desc 'Builds the latest version of Demo app and uploads it to TestFlight'
-lane :swiftui_testflight_build do
+lane :swiftui_testflight_build do |options|
+  is_manual_upload = is_localhost || ENV['GITHUB_EVENT_NAME'] == 'workflow_dispatch'
+  configuration = options[:configuration].to_s.empty? ? 'Release' : options[:configuration]
+
   match_me
+
+  sdk_version = get_sdk_version_from_environment
+  UI.important("[TestFlight] Uploading DemoApp version: #{sdk_version}")
+
   testflight_build(
     api_key: appstore_api_key,
     xcode_project: xcode_project,
     sdk_target: 'StreamChatSwiftUI',
+    app_version: sdk_version,
     app_target: 'DemoAppSwiftUI',
     app_identifier: 'io.getstream.iOS.DemoAppSwiftUI',
-    app_version: File.read(swift_environment_path).match(/String\s+=\s+"([\d.]+)"/)[1]
+    configuration: configuration,
+    use_changelog: true,
+    is_manual_upload: is_manual_upload
   )
 end
 
@@ -320,29 +331,24 @@ lane :test_e2e_mock do |options|
     number_of_retries: 3
   }
 
-  if is_localhost
-    scan(scan_options)
-  else
-    parallelize_tests_on_ci(scan: scan_options, batch: options[:batch], cron: options[:cron])
+  if ENV['MATRIX_SIZE'] && options[:batch]
+    products_dir = File.expand_path("../#{derived_data_path}/Build/Products")
+    xctestrun = Dir.glob(File.expand_path("#{products_dir}/*.xctestrun")).first
+    tests = retrieve_xctest_names(xctestrun: xctestrun).values.flatten
+    slice_size = (tests.size / ENV['MATRIX_SIZE'].to_f).ceil
+    only_testing = []
+    tests.each_slice(slice_size) { |test| only_testing << test }
+    only_testing_batch = only_testing[options[:batch].to_i]
+    scan_options[:only_testing] = only_testing_batch
+    UI.important("Tests in total: #{only_testing.flatten.size}. Running #{only_testing_batch.size} of them ⌛️")
   end
-end
-
-private_lane :parallelize_tests_on_ci do |options|
-  products_dir = File.expand_path("../#{derived_data_path}/Build/Products")
-  xctestrun = Dir.glob(File.expand_path("#{products_dir}/*.xctestrun")).first
-  tests = retrieve_xctest_names(xctestrun: xctestrun).values.flatten
-  slice_size = options[:cron] ? tests.size : (tests.size / ENV['MATRIX_SIZE'].to_f).ceil
-  only_testing = []
-  tests.each_slice(slice_size) { |test| only_testing << test }
-  only_testing_batch = only_testing[options[:batch].to_i]
 
   begin
-    UI.success("Tests in total: #{only_testing.flatten.size}. Running #{only_testing_batch.size} of them ⌛️")
-    scan(options[:scan].merge(only_testing: only_testing_batch))
+    scan(scan_options)
   rescue StandardError
     failed_tests = retreive_failed_tests
     UI.important("Re-running #{failed_tests.size} failed tests ⌛️")
-    scan(options[:scan].merge(only_testing: failed_tests))
+    scan(scan_options.merge(only_testing: failed_tests))
   end
 end
 
@@ -480,6 +486,37 @@ lane :rubocop do
   sh('bundle exec rubocop')
 end
 
+desc 'Run PR linting'
+lane :lint_pr do
+  danger(dangerfile: 'Dangerfile') if is_ci
+end
+
+def check_foundation_import
+  files_missing_imports = []
+  Dir.glob("Sources/**/*.swift").each do |file|
+    next if file =~ /(StreamNuke|StreamSwiftyGif)/
+
+    files_missing_imports << file unless File.read(file).match?(/import (Foundation|UIKit|SwiftUI|Combine|StreamChat)/)
+  end
+
+  unless files_missing_imports.empty?
+    UI.error("Files missing 'Foundation' import:")
+    files_missing_imports.each { |file| UI.error("- #{file}") }
+    UI.user_error!("Lint check failed.")
+  end
+end
+
+desc 'Run source code formatting/linting'
+lane :run_swift_format do |options|
+  Dir.chdir('..') do
+    check_foundation_import
+    strict = options[:strict] ? '--lint' : nil
+    sh("swiftformat #{strict} --config .swiftformat .")
+    sh("swiftlint lint --config .swiftlint.yml --fix --progress --reporter json") unless strict
+    sh("swiftlint lint --config .swiftlint.yml --strict --progress --reporter json")
+  end
+end
+
 lane :install_runtime do |options|
   install_ios_runtime(version: options[:ios], custom_script: 'Scripts/install_ios_runtime.sh')
 end
@@ -503,7 +540,8 @@ lane :sources_matrix do
     sample_apps: ['Sources', 'DemoAppSwiftUI', xcode_project],
     ruby: ['fastlane', 'Gemfile', 'Gemfile.lock'],
     size: ['Sources', xcode_project],
-    sonar: ['Sources']
+    sonar: ['Sources'],
+    public_interface: ['Sources']
   }
 end
 
@@ -515,6 +553,48 @@ lane :copyright do
     title: '[CI] Update Copyright',
     head_branch: "ci/update-copyright-#{Time.now.to_i}"
   )
+end
+
+lane :validate_public_interface do
+  next unless is_check_required(sources: sources_matrix[:public_interface], force_check: @force_check)
+
+  # Get branch names
+  original_branch = current_branch
+  target_branch = ENV['GITHUB_BASE_REF'] || (original_branch.include?('release/') ? 'main' : 'develop')
+  UI.important("Target branch: #{target_branch} 🕊️")
+
+  # Run the analysis on the current branch
+  sh('interface-analyser analysis ../Sources/ public_interface_current.json')
+
+  # Checkout the target branch
+  sh("git fetch origin #{target_branch}")
+  sh("git checkout #{target_branch}")
+
+  # Run the analysis on the target branch
+  sh('interface-analyser analysis ../Sources/ public_interface_previous.json')
+
+  # Run diff
+  report_path = 'interface-analyser-report.md'
+  sh("interface-analyser diff public_interface_current.json public_interface_previous.json #{report_path}")
+
+  # Check if report exists and is non-zero in size
+  diff =
+    if File.exist?(report_path) && File.size(report_path) > 0
+      File.read(report_path).strip
+    else
+      '🚀 No changes affecting the public interface.'
+    end
+
+  # Generate markdown table for the PR comment
+  header = '## Public Interface'
+  content = "#{header}\n#{diff}"
+
+  # Post PR comment if running in CI
+  pr_comment(text: content, edit_last_comment_with_text: header) if is_ci
+
+  # Checkout the original branch
+  sh("git fetch origin #{original_branch}")
+  sh("git checkout #{original_branch}")
 end
 
 lane :show_frameworks_sizes do |options|
@@ -533,7 +613,7 @@ lane :update_img_shields_sdk_sizes do |options|
   )
 end
 
-def frameworks_sizes
+private_lane :frameworks_sizes do
   root_dir = 'Build/SDKSize'
   archive_dir = "#{root_dir}/DemoApp.xcarchive"
 
@@ -545,7 +625,9 @@ def frameworks_sizes
     scheme: 'DemoAppSwiftUI',
     archive_path: archive_dir,
     export_method: 'ad-hoc',
-    export_options: 'fastlane/sdk_size_export_options.plist'
+    export_options: 'fastlane/sdk_size_export_options.plist',
+    derived_data_path: derived_data_path,
+    cloned_source_packages_path: source_packages_path
   )
 
   # Parse the thinned size of Assets.car from Packaging.log
@@ -559,4 +641,21 @@ def frameworks_sizes
   stream_chat_swiftui_size_kb = (stream_chat_swiftui_size + assets_thinned_size) / 1024.0
 
   { StreamChatSwiftUI: stream_chat_swiftui_size_kb.round(0) }
+end
+
+lane :size_analyze do
+  next unless is_check_required(sources: sources_matrix[:size], force_check: @force_check)
+
+  gym(
+    scheme: 'DemoAppSwiftUI',
+    configuration: 'Release',
+    skip_archive: true,
+    skip_package_ipa: true,
+    skip_package_pkg: true,
+    skip_codesigning: true,
+    derived_data_path: derived_data_path,
+    cloned_source_packages_path: source_packages_path
+  )
+
+  show_detailed_sdk_size(sdk_names: sdk_names, threshold: 42)
 end

@@ -6,7 +6,6 @@ import StreamChat
 import SwiftUI
 
 public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
-
     @Injected(\.colors) var colors
     @Injected(\.images) var images
     @Injected(\.utils) var utils
@@ -68,7 +67,7 @@ public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
                 }
             }
             if !message.text.isEmpty {
-                AttachmentTextView(message: message)
+                AttachmentTextView(factory: factory, message: message)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -154,8 +153,8 @@ struct VoiceRecordingView: View {
                         )
                     )
             })
-                .opacity(loading ? 0 : 1)
-                .overlay(loading ? ProgressView() : nil)
+            .opacity(loading ? 0 : 1)
+            .overlay(loading ? ProgressView() : nil)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(
@@ -252,7 +251,6 @@ struct VoiceRecordingView: View {
 }
 
 class VoiceRecordingHandler: ObservableObject, AudioPlayingDelegate {
-    
     @Published var context: AudioPlaybackContext = .notLoaded
     
     func audioPlayer(

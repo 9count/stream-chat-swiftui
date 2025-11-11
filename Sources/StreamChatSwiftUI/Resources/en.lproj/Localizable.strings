@@ -90,6 +90,8 @@
 "message.polls.votes" = "%d votes";
 
 "message.translatedTo" = "Translated to %@";
+"message.showOriginal" = "Show Original";
+"message.showTranslation" = "Show Translation";
 
 "alert.actions.cancel" = "Cancel";
 "alert.actions.delete" = "Delete";
@@ -119,6 +121,7 @@
 "composer.title.edit" = "Edit Message";
 "composer.title.reply" = "Reply to Message";
 "composer.placeholder.message" = "Send a message";
+"composer.placeholder.messageDisabled" = "You can't send messages in this channel";
 "composer.placeholder.slow-mode" = "Slow mode ON";
 "composer.placeholder.giphy" = "Search GIFs";
 "composer.checkmark.direct-message-reply" = "Also send as direct message";
@@ -146,7 +149,7 @@
 "composer.polls.duplicate-option" = "This is already an option";
 "composer.polls.multiple-answers" = "Multiple answers";
 "composer.polls.suggest-option" = "Suggest an option";
-"composer.polls.type-number-from-1-and-10" = "Type a number from 1 and 10";
+"composer.polls.type-number-min-max-range" = "Type a number from 2 and 10";
 "composer.audio-recording.start" = "Start recording audio message";
 "composer.audio-recording.stop" = "Stop recording audio message";
 
@@ -221,6 +224,10 @@
 "channel.item.video" = "Video";
 "channel.item.poll" = "Poll";
 "channel.item.voice-message" = "Voice Message";
+"channel.item.remove-user" = "Remove User";
+"channel.item.remove-user-confirmation-title" = "Remove User";
+"channel.item.remove-user-confirmation-message" = "Are you sure you want to remove %@ from %@?";
+"channel.item.send-direct-message" = "Send Direct Message";
 
 // - MARK: Threads
 

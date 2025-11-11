@@ -7,7 +7,6 @@ import StreamChatSwiftUI
 import SwiftUI
 
 public struct CustomChannelHeader: ToolbarContent {
-
     @Injected(\.fonts) var fonts
     @Injected(\.images) var images
     @Injected(\.colors) var colors
@@ -31,9 +30,10 @@ public struct CustomChannelHeader: ToolbarContent {
                 Image(uiImage: images.messageActionEdit)
                     .resizable()
                     .scaledToFit()
-                    .foregroundColor(Color.white)
+                    .frame(width: 24, height: 24)
+                    .foregroundColor(Color(colors.navigationBarGlyph))
                     .padding(.all, 8)
-                    .background(colors.tintColor)
+                    .background(colors.navigationBarTintColor)
                     .clipShape(Circle())
             }
             .accessibilityLabel(Text("New Channel"))
@@ -42,16 +42,18 @@ public struct CustomChannelHeader: ToolbarContent {
             Button {
                 actionsPopupShown = true
             } label: {
-                StreamLazyImage(url: currentUserController.currentUser?.imageURL)
-                    .accessibilityLabel("Account Actions")
-                    .accessibilityAddTraits(.isButton)
+                StreamLazyImage(
+                    url: currentUserController.currentUser?.imageURL,
+                    size: CGSize(width: 36, height: 36)
+                )
+                .accessibilityLabel("Account Actions")
+                .accessibilityAddTraits(.isButton)
             }
         }
     }
 }
 
 struct CustomChannelModifier: ChannelListHeaderViewModifier {
-
     @Injected(\.chatClient) var chatClient
 
     var title: String
@@ -64,13 +66,27 @@ struct CustomChannelModifier: ChannelListHeaderViewModifier {
 
     func body(content: Content) -> some View {
         ZStack {
-            content.toolbar {
-                CustomChannelHeader(
-                    title: title,
-                    currentUserController: chatClient.currentUserController(),
-                    isNewChatShown: $isNewChatShown,
-                    actionsPopupShown: $actionsPopupShown
-                )
+            if #available(iOS 26, *) {
+                content.toolbarThemed {
+                    CustomChannelHeader(
+                        title: title,
+                        currentUserController: chatClient.currentUserController(),
+                        isNewChatShown: $isNewChatShown,
+                        actionsPopupShown: $actionsPopupShown
+                    )
+                    #if compiler(>=6.2)
+                    .sharedBackgroundVisibility(.hidden)
+                    #endif
+                }
+            } else {
+                content.toolbarThemed {
+                    CustomChannelHeader(
+                        title: title,
+                        currentUserController: chatClient.currentUserController(),
+                        isNewChatShown: $isNewChatShown,
+                        actionsPopupShown: $actionsPopupShown
+                    )
+                }
             }
             
             NavigationLink(isActive: $blockedUsersShown) {
@@ -78,6 +94,7 @@ struct CustomChannelModifier: ChannelListHeaderViewModifier {
             } label: {
                 EmptyView()
             }
+            .opacity(0) // Fixes showing accessibility button shape
 
             NavigationLink(isActive: $isNewChatShown) {
                 NewChatView(isNewChatShown: $isNewChatShown)
@@ -85,6 +102,7 @@ struct CustomChannelModifier: ChannelListHeaderViewModifier {
                 EmptyView()
             }
             .isDetailLink(UIDevice.current.userInterfaceIdiom == .pad)
+            .opacity(0) // Fixes showing accessibility button shape
             .alert(isPresented: $logoutAlertShown) {
                 Alert(
                     title: Text("Sign out"),

@@ -9,6 +9,7 @@ import SwiftUI
 public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable {
     @Injected(\.colors) private var colors
     @Injected(\.fonts) private var fonts
+    @Injected(\.utils) private var utils
 
     // Initial popup size, before the keyboard is shown.
     @State private var popupSize: CGFloat = 350
@@ -102,9 +103,11 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                         quotedMessage: quotedMessage,
                         editedMessage: editedMessage
                     ) {
+                        // Calling onMessageSent() before erasing the edited and quoted message
+                        // so that onMessageSent can use them for state handling.
+                        onMessageSent()
                         quotedMessage = nil
                         editedMessage = nil
-                        onMessageSent()
                     }
                 }
                 .environmentObject(viewModel)
@@ -179,6 +182,10 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                     withAnimation(.easeInOut(duration: 0.02)) {
                         viewModel.pickerTypeState = .expanded(.none)
                     }
+                } else if editedMessageWillShow {
+                    // When editing a message, the keyboard will show.
+                    // If the attachment picker is open, we should dismiss it.
+                    viewModel.pickerTypeState = .expanded(.none)
                 }
             }
             keyboardShown = visible
@@ -208,26 +215,38 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         )
         .modifier(factory.makeComposerViewModifier())
         .onChange(of: editedMessage) { _ in
-            viewModel.text = editedMessage?.text ?? ""
+            viewModel.fillEditedMessage(editedMessage)
             if editedMessage != nil {
                 becomeFirstResponder()
                 editedMessageWillShow = true
-                viewModel.selectedRangeLocation = editedMessage?.text.count ?? 0
             }
         }
         .onAppear(perform: {
             viewModel.fillDraftMessage()
         })
         .onDisappear(perform: {
-            viewModel.updateDraftMessage(quotedMessage: quotedMessage)
+            if editedMessage == nil {
+                viewModel.updateDraftMessage(quotedMessage: quotedMessage)
+            }
         })
+        .onReceive(NotificationCenter.default.publisher(for: .commandsOverlayHiddenNotification)) { _ in
+            guard utils.messageListConfig.hidesCommandsOverlayOnMessageListTap else {
+                return
+            }
+            viewModel.composerCommand = nil
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .attachmentPickerHiddenNotification)) { _ in
+            guard utils.messageListConfig.hidesAttachmentsPickersOnMessageListTap else {
+                return
+            }
+            viewModel.pickerTypeState = .expanded(.none)
+        }
         .accessibilityElement(children: .contain)
     }
 }
 
 /// View for the composer's input (text and media).
 public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
-
     @EnvironmentObject var viewModel: MessageComposerViewModel
     
     @Injected(\.colors) private var colors
@@ -369,11 +388,12 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
                     text: $text,
                     height: $textHeight,
                     selectedRangeLocation: $selectedRangeLocation,
-                    placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : L10n.Composer.Placeholder.message,
-                    editable: !isInCooldown,
+                    placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : (isChannelFrozen ? L10n.Composer.Placeholder.messageDisabled : L10n.Composer.Placeholder.message),
+                    editable: !isInputDisabled,
                     maxMessageLength: maxMessageLength,
                     currentHeight: textFieldHeight
                 )
+                .environmentObject(viewModel)
                 .accessibilityIdentifier("ComposerTextInputView")
                 .accessibilityElement(children: .contain)
                 .frame(height: textFieldHeight)
@@ -428,4 +448,22 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
     private var isInCooldown: Bool {
         cooldownDuration > 0
     }
+
+    private var isChannelFrozen: Bool {
+        !viewModel.isSendMessageEnabled
+    }
+
+    private var isInputDisabled: Bool {
+        isInCooldown || isChannelFrozen
+    }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    /// Notification sent when the attachments picker should be hidden.
+    static let attachmentPickerHiddenNotification = Notification.Name("attachmentPickerHiddenNotification")
+
+    /// Notification sent when the commands overlay should be hidden.
+    static let commandsOverlayHiddenNotification = Notification.Name("commandsOverlayHiddenNotification")
 }

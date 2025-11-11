@@ -6,7 +6,6 @@ import StreamChat
 import SwiftUI
 
 struct PollResultsView<Factory: ViewFactory>: View {
-    
     @Environment(\.presentationMode) var presentationMode
     
     @ObservedObject var viewModel: PollAttachmentViewModel
@@ -19,14 +18,8 @@ struct PollResultsView<Factory: ViewFactory>: View {
     private let numberOfItemsShown = 5
     
     var body: some View {
-        if #available(iOS 16, *) {
-            NavigationStack {
-                content
-            }
-        } else {
-            NavigationView {
-                content
-            }
+        NavigationContainerView(embedInNavigationView: true) {
+            content
         }
     }
     
@@ -59,10 +52,11 @@ struct PollResultsView<Factory: ViewFactory>: View {
             }
         }
         .background(Color(colors.background).ignoresSafeArea())
-        .toolbar {
+        .toolbarThemed {
             ToolbarItem(placement: .principal) {
                 Text(L10n.Message.Polls.Toolbar.resultsTitle)
                     .bold()
+                    .foregroundColor(Color(colors.navigationBarTitle))
             }
             
             ToolbarItem(placement: .navigationBarLeading) {
@@ -78,7 +72,6 @@ struct PollResultsView<Factory: ViewFactory>: View {
 }
 
 struct PollOptionResultsView<Factory: ViewFactory>: View {
-    
     @Injected(\.colors) var colors
     @Injected(\.fonts) var fonts
     
@@ -113,7 +106,8 @@ struct PollOptionResultsView<Factory: ViewFactory>: View {
                                 id: vote.user?.id ?? "",
                                 name: vote.user?.name ?? "",
                                 imageURL: vote.user?.imageURL,
-                                size: .init(width: 20, height: 20)
+                                size: .init(width: 20, height: 20),
+                                extraData: vote.user?.extraData ?? [:]
                             )
                         )
                     }

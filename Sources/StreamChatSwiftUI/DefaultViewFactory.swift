@@ -73,6 +73,7 @@ extension ViewFactory {
         trailingSwipeLeftButtonTapped: @escaping (ChatChannel) -> Void,
         leadingSwipeButtonTapped: @escaping (ChatChannel) -> Void
     ) -> some View {
+        let utils = InjectedValues[\.utils]
         let listItem = ChatChannelNavigatableListItem(
             factory: self,
             channel: channel,
@@ -80,6 +81,7 @@ extension ViewFactory {
             avatar: avatar,
             onlineIndicatorShown: onlineIndicatorShown,
             disabled: disabled,
+            handleTabBarVisibility: utils.messageListConfig.handleTabBarVisibility,
             selectedChannel: selectedChannel,
             channelDestination: channelDestination,
             onItemTap: onItemTap
@@ -373,7 +375,15 @@ extension ViewFactory {
     public func makeLastInGroupHeaderView(for message: ChatMessage) -> some View {
         EmptyView()
     }
-    
+
+    public func makeMessageTranslationFooterView(
+        messageViewModel: MessageViewModel
+    ) -> some View {
+        MessageTranslationFooterView(
+            messageViewModel: messageViewModel
+        )
+    }
+
     public func makeImageAttachmentView(
         for message: ChatMessage,
         isFirst: Bool,
@@ -445,6 +455,62 @@ extension ViewFactory {
             message: message,
             width: availableWidth,
             scrolledId: scrolledId
+        )
+    }
+    
+    public func makeGalleryView(
+        mediaAttachments: [MediaAttachment],
+        message: ChatMessage,
+        isShown: Binding<Bool>,
+        options: MediaViewsOptions
+    ) -> some View {
+        GalleryView(
+            viewFactory: self,
+            mediaAttachments: mediaAttachments,
+            author: message.author,
+            isShown: isShown,
+            selected: options.selectedIndex,
+            message: message
+        )
+    }
+    
+    public func makeGalleryHeaderView(
+        title: String,
+        subtitle: String,
+        shown: Binding<Bool>
+    ) -> some View {
+        GalleryHeaderView(title: title, subtitle: subtitle, isShown: shown)
+    }
+    
+    public func makeVideoPlayerView(
+        attachment: ChatMessageVideoAttachment,
+        message: ChatMessage,
+        isShown: Binding<Bool>,
+        options: MediaViewsOptions
+    ) -> some View {
+        VideoPlayerView(
+            viewFactory: self,
+            attachment: attachment,
+            author: message.author,
+            isShown: isShown
+        )
+    }
+    
+    public func makeVideoPlayerHeaderView(
+        title: String,
+        subtitle: String,
+        shown: Binding<Bool>
+    ) -> some View {
+        GalleryHeaderView(title: title, subtitle: subtitle, isShown: shown)
+    }
+    
+    public func makeVideoPlayerFooterView(
+        attachment: ChatMessageVideoAttachment,
+        shown: Binding<Bool>
+    ) -> some View {
+        VideoPlayerFooterView(
+            attachment: attachment,
+            shown: shown
         )
     }
     
@@ -545,7 +611,8 @@ extension ViewFactory {
             message: parentMessage,
             replyCount: replyCount,
             showReplyCount: false,
-            isRightAligned: message.isRightAligned
+            isRightAligned: message.isRightAligned,
+            threadReplyMessage: message // Pass the actual reply message (shown in channel)
         )
     }
     
@@ -962,10 +1029,12 @@ extension ViewFactory {
             currentUserId: chatClient.currentUserId,
             message: message
         )
-        let showReadCount = channel.memberCount > 2
+        let showReadCount = channel.memberCount > 2 && !message.isLastActionFailed
+        let showDelivered = message.deliveryStatus(for: channel) == .delivered
         return MessageReadIndicatorView(
             readUsers: readUsers,
             showReadCount: showReadCount,
+            showDelivered: showDelivered,
             localState: message.localState
         )
     }
@@ -1021,14 +1090,15 @@ extension ViewFactory {
         threadDestination: @escaping (ChatThread) -> ThreadDestination,
         selectedThread: Binding<ThreadSelectionInfo?>
     ) -> some View {
-        ChatThreadListNavigatableItem(
+        let utils = InjectedValues[\.utils]
+        return ChatThreadListNavigatableItem(
             thread: thread,
             threadListItem: ChatThreadListItem(
                 viewModel: .init(thread: thread)
             ),
             threadDestination: threadDestination,
             selectedThread: selectedThread,
-            handleTabBarVisibility: true
+            handleTabBarVisibility: utils.messageListConfig.handleTabBarVisibility
         )
     }
 
@@ -1079,6 +1149,19 @@ extension ViewFactory {
 
     public func makeThreadListDividerItem() -> some View {
         Divider()
+    }
+    
+    public func makeAddUsersView(
+        options: AddUsersOptions,
+        onUserTap: @escaping (ChatUser) -> Void
+    ) -> some View {
+        AddUsersView(loadedUserIds: options.loadedUsers.map(\.id), onUserTap: onUserTap)
+    }
+    
+    public func makeAttachmentTextView(
+        options: AttachmentTextViewOptions
+    ) -> some View {
+        StreamTextView(message: options.message)
     }
 }
 

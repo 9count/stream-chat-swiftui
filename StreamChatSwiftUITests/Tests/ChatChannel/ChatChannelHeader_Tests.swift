@@ -10,7 +10,6 @@ import SwiftUI
 import XCTest
 
 class ChatChannelHeader_Tests: StreamChatTestCase {
-
     func test_chatChannelHeaderModifier_snapshot() {
         // Given
         let channel = ChatChannel.mockDMChannel(name: "Test channel")
@@ -73,6 +72,23 @@ class ChatChannelHeader_Tests: StreamChatTestCase {
         // When
         let view = ChannelTitleView(channel: channel, shouldShowTypingIndicator: true)
             .applyDefaultSize()
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_channelTitleView_theme_snapshot() {
+        // Given
+        let channel = ChatChannel.mockDMChannel(name: "Test channel")
+
+        // When
+        adjustAppearance { appearance in
+            appearance.colors.text = .red
+            appearance.colors.subtitleText = .blue
+        }
+        let size = CGSize(width: 300, height: 100)
+        let view = ChannelTitleView(channel: channel, shouldShowTypingIndicator: true)
+            .applySize(size)
 
         // Then
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))

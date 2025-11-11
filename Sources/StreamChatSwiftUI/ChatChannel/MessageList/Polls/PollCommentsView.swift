@@ -6,7 +6,6 @@ import StreamChat
 import SwiftUI
 
 struct PollCommentsView<Factory: ViewFactory>: View {
-    
     @Injected(\.colors) var colors
     
     @Environment(\.presentationMode) var presentationMode
@@ -30,7 +29,7 @@ struct PollCommentsView<Factory: ViewFactory>: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationContainerView(embedInNavigationView: true) {
             ScrollView {
                 LazyVStack(alignment: .leading) {
                     ForEach(viewModel.comments) { comment in
@@ -43,7 +42,8 @@ struct PollCommentsView<Factory: ViewFactory>: View {
                                         let displayInfo = UserDisplayInfo(
                                             id: comment.user?.id ?? "",
                                             name: comment.user?.name ?? "",
-                                            imageURL: comment.user?.imageURL
+                                            imageURL: comment.user?.imageURL,
+                                            extraData: comment.user?.extraData ?? [:]
                                         )
                                         factory.makeMessageAvatarView(for: displayInfo)
                                     }
@@ -64,27 +64,29 @@ struct PollCommentsView<Factory: ViewFactory>: View {
                                 .bold()
                                 .foregroundColor(colors.tintColor)
                         })
-                            .frame(maxWidth: .infinity)
-                            .withPollsBackground()
-                            .uiAlert(
-                                title: commentButtonTitle,
-                                isPresented: $viewModel.addCommentShown,
-                                text: $viewModel.newCommentText,
-                                accept: L10n.Alert.Actions.send,
-                                action: { viewModel.add(comment: viewModel.newCommentText) }
-                            )
+                        .frame(maxWidth: .infinity)
+                        .withPollsBackground()
+                        .uiAlert(
+                            title: commentButtonTitle,
+                            isPresented: $viewModel.addCommentShown,
+                            text: $viewModel.newCommentText,
+                            accept: L10n.Alert.Actions.send,
+                            action: { viewModel.add(comment: viewModel.newCommentText) }
+                        )
                     }
                 }
                 .padding()
             }
+            .background(Color(colors.background).ignoresSafeArea())
             .alertBanner(
                 isPresented: $viewModel.errorShown,
                 action: viewModel.refresh
             )
-            .toolbar {
+            .toolbarThemed {
                 ToolbarItem(placement: .principal) {
                     Text(L10n.Message.Polls.Toolbar.commentsTitle)
                         .bold()
+                        .foregroundColor(Color(colors.navigationBarTitle))
                 }
                 
                 ToolbarItem(placement: .navigationBarLeading) {

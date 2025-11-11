@@ -143,7 +143,6 @@ public struct AttachmentSourcePickerView: View {
     }
 
     public var body: some View {
-
         HStack(alignment: .center, spacing: 24) {
             AttachmentPickerButton(
                 icon: images.attachmentPickerPhotos,
@@ -170,7 +169,7 @@ public struct AttachmentSourcePickerView: View {
             )
             .accessibilityIdentifier("attachmentPickerCamera")
             
-            if viewModel.channelController.channel?.config.pollsEnabled == true && viewModel.messageController == nil {
+            if viewModel.canSendPoll {
                 AttachmentPickerButton(
                     icon: images.attachmentPickerPolls,
                     pickerType: .polls,

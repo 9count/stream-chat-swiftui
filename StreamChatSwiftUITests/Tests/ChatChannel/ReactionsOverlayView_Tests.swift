@@ -10,7 +10,6 @@ import SwiftUI
 import XCTest
 
 class ReactionsOverlayView_Tests: StreamChatTestCase {
-    
     private static let screenSize = CGSize(width: 393, height: 852)
 
     private let testMessage = ChatMessage.mock(
@@ -136,7 +135,7 @@ class ReactionsOverlayView_Tests: StreamChatTestCase {
         let view = VerticallyCenteredView {
             ReactionsOverlayView(
                 factory: DefaultViewFactory.shared,
-                channel: .mockDMChannel(ownCapabilities: [.sendMessage, .uploadFile, .pinMessage]),
+                channel: .mockDMChannel(ownCapabilities: [.sendMessage, .uploadFile, .pinMessage, .readEvents]),
                 currentSnapshot: self.overlayImage,
                 messageDisplayInfo: messageDisplayInfo,
                 onBackgroundTap: {},
@@ -225,10 +224,41 @@ class ReactionsOverlayView_Tests: StreamChatTestCase {
         // Then
         XCTAssert(offset == 12.5)
     }
+
+    func test_reactionsOverlayView_translated() {
+        // Given
+        let testMessage = ChatMessage.mock(
+            id: "test",
+            cid: .unique,
+            text: "Hello",
+            author: .mock(id: "test", name: "martin"),
+            translations: [.portuguese: "Olá"]
+        )
+        let messageDisplayInfo = MessageDisplayInfo(
+            message: testMessage,
+            frame: self.messageDisplayInfo.frame,
+            contentWidth: self.messageDisplayInfo.contentWidth,
+            isFirst: true
+        )
+        let channel = ChatChannel.mock(cid: .unique, membership: .mock(id: "test", language: .portuguese))
+        let view = VerticallyCenteredView {
+            ReactionsOverlayView(
+                factory: DefaultViewFactory.shared,
+                channel: channel,
+                currentSnapshot: self.overlayImage,
+                messageDisplayInfo: messageDisplayInfo,
+                onBackgroundTap: {},
+                onActionExecuted: { _ in }
+            )
+            .environment(\.messageViewModel, MessageViewModel(message: testMessage, channel: channel))
+        }
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
 }
 
 struct VerticallyCenteredView<Content: View>: View {
-
     var content: () -> Content
 
     var body: some View {

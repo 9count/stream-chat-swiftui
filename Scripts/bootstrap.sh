@@ -2,8 +2,7 @@
 # shellcheck source=/dev/null
 # Usage: ./bootstrap.sh
 # This script will:
-#   - install Mint and bootstrap its dependencies
-#   - install Vale
+#   - install SwiftLint, SwiftFormat, SwiftGen
 #   - link git hooks
 #   - install allure dependencies if `INSTALL_ALLURE` environment variable is provided
 #   - install sonar-scanner if `INSTALL_SONAR` environment variable is provided
@@ -21,29 +20,47 @@ trap "echo ; echo ❌ The Bootstrap script failed to finish without error. See t
 
 source ./Githubfile
 
-puts "Create git/hooks folder if needed"
-mkdir -p .git/hooks
+if [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  puts "Set up git hooks"
+  bundle install
+  bundle exec lefthook install
+fi
 
-# Symlink hooks folder to .git/hooks folder
-puts "Create symlink for pre-commit hooks"
-# Symlink needs to be ../../hooks and not ./hooks because git evaluates them in .git/hooks
-ln -sf ../../hooks/pre-commit.sh .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
-chmod +x ./hooks/git-format-staged
+if [ "${SKIP_SWIFT_BOOTSTRAP:-}" != true ]; then
+  puts "Install SwiftLint v${SWIFT_LINT_VERSION}"
+  DOWNLOAD_URL="https://github.com/realm/SwiftLint/releases/download/${SWIFT_LINT_VERSION}/SwiftLint.pkg"
+  DOWNLOAD_PATH="/tmp/SwiftLint-${SWIFT_LINT_VERSION}.pkg"
+  curl -sL "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
+  sudo installer -pkg "$DOWNLOAD_PATH" -target /
+  swiftlint version
 
-if [ "${SKIP_MINT_BOOTSTRAP:-}" != true ]; then
-  puts "Bootstrap Mint dependencies"
-  git clone https://github.com/yonaskolb/Mint.git fastlane/mint
-  root=$(pwd)
-  cd fastlane/mint
-  swift run mint install "yonaskolb/mint@${MINT_VERSION}"
-  cd $root
-  rm -rf fastlane/mint
-  mint bootstrap --link
+  puts "Install SwiftFormat v${SWIFT_FORMAT_VERSION}"
+  DOWNLOAD_URL="https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFT_FORMAT_VERSION}/swiftformat.zip"
+  DOWNLOAD_PATH="/tmp/swiftformat-${SWIFT_FORMAT_VERSION}.zip"
+  BIN_PATH="/usr/local/bin/swiftformat"
+  brew uninstall swiftformat || true
+  curl -sL "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
+  unzip -o "$DOWNLOAD_PATH" -d /tmp/swiftformat-${SWIFT_FORMAT_VERSION}
+  sudo mv /tmp/swiftformat-${SWIFT_FORMAT_VERSION}/swiftformat "$BIN_PATH"
+  sudo chmod +x "$BIN_PATH"
+  swiftformat --version
+
+  puts "Install SwiftGen v${SWIFT_GEN_VERSION}"
+  DOWNLOAD_URL="https://github.com/SwiftGen/SwiftGen/releases/download/${SWIFT_GEN_VERSION}/swiftgen-${SWIFT_GEN_VERSION}.zip"
+  DOWNLOAD_PATH="/tmp/swiftgen-${SWIFT_GEN_VERSION}.zip"
+  INSTALL_DIR="/usr/local/lib/swiftgen"
+  BIN_PATH="/usr/local/bin/swiftgen"
+  curl -sL "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
+  sudo rm -rf "$INSTALL_DIR"
+  sudo mkdir -p "$INSTALL_DIR"
+  sudo unzip -o "$DOWNLOAD_PATH" -d "$INSTALL_DIR"
+  sudo sudo rm -f "$BIN_PATH"
+  sudo sudo ln -s "$INSTALL_DIR/bin/swiftgen" "$BIN_PATH"
+  swiftgen --version
 fi
 
 if [[ ${INSTALL_SONAR-default} == true ]]; then
-  puts "Install sonar scanner"
+  puts "Install sonar scanner v${SONAR_VERSION}"
   DOWNLOAD_URL="https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_VERSION}-macosx-x64.zip"
   curl -sL "${DOWNLOAD_URL}" -o ./fastlane/sonar.zip
   cd fastlane
@@ -55,12 +72,12 @@ if [[ ${INSTALL_SONAR-default} == true ]]; then
 fi
 
 if [[ ${INSTALL_ALLURE-default} == true ]]; then
-  puts "Install allurectl"
+  puts "Install allurectl v${ALLURECTL_VERSION}"
   DOWNLOAD_URL="https://github.com/allure-framework/allurectl/releases/download/${ALLURECTL_VERSION}/allurectl_darwin_amd64"
   curl -sL "${DOWNLOAD_URL}" -o ./fastlane/allurectl
   chmod +x ./fastlane/allurectl
 
-  puts "Install xcresults"
+  puts "Install xcresults v${XCRESULTS_VERSION}"
   DOWNLOAD_URL="https://github.com/eroshenkoam/xcresults/releases/download/${XCRESULTS_VERSION}/xcresults"
   curl -sL "${DOWNLOAD_URL}" -o ./fastlane/xcresults
   chmod +x ./fastlane/xcresults
@@ -73,4 +90,21 @@ if [[ ${INSTALL_YEETD-default} == true ]]; then
   sudo installer -pkg ${PACKAGE} -target /
   puts "Running yeetd daemon"
   yeetd &
+fi
+
+if [[ ${INSTALL_IPSW-default} == true ]]; then
+  puts "Install ipsw v${IPSW_VERSION}"
+  FILE="ipsw_${IPSW_VERSION}_macOS_universal.tar.gz"
+  wget "https://github.com/blacktop/ipsw/releases/download/v${IPSW_VERSION}/${FILE}"
+  tar -xzf "$FILE"
+  chmod +x ipsw
+  sudo mv ipsw /usr/local/bin/
+fi
+
+if [[ ${INSTALL_INTERFACE_ANALYZER-default} == true ]]; then
+  puts "Install interface-analyser v${INTERFACE_ANALYZER_VERSION}"
+  FILE="interface-analyser"
+  wget "https://github.com/GetStream/stream-module-interface-analyser/releases/download/v${INTERFACE_ANALYZER_VERSION}/${FILE}"
+  chmod +x ${FILE}
+  sudo mv ${FILE} /usr/local/bin/
 fi

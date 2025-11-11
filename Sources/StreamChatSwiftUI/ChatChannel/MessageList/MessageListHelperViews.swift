@@ -7,7 +7,6 @@ import SwiftUI
 
 /// View that displays the message author and the date of sending.
 public struct MessageAuthorAndDateView: View {
-    
     @Injected(\.utils) private var utils
     
     var message: ChatMessage
@@ -33,7 +32,6 @@ public struct MessageAuthorAndDateView: View {
 
 /// View that displays the message author.
 public struct MessageAuthorView: View {
-    
     @Injected(\.fonts) private var fonts
     @Injected(\.colors) private var colors
     
@@ -102,17 +100,24 @@ public struct MessageReadIndicatorView: View {
     
     var readUsers: [ChatUser]
     var showReadCount: Bool
+    var showDelivered: Bool
     var localState: LocalMessageState?
     
-    public init(readUsers: [ChatUser], showReadCount: Bool, localState: LocalMessageState? = nil) {
+    public init(
+        readUsers: [ChatUser],
+        showReadCount: Bool,
+        showDelivered: Bool = false,
+        localState: LocalMessageState? = nil
+    ) {
         self.readUsers = readUsers
         self.showReadCount = showReadCount
+        self.showDelivered = showDelivered
         self.localState = localState
     }
     
     public var body: some View {
         HStack(spacing: 2) {
-            if showReadCount && !readUsers.isEmpty {
+            if showReadCount && shouldShowReads {
                 Text("\(readUsers.count)")
                     .font(fonts.footnoteBold)
                     .foregroundColor(colors.tintColor)
@@ -122,8 +127,9 @@ public struct MessageReadIndicatorView: View {
                 uiImage: image
             )
             .customizable()
-            .foregroundColor(!readUsers.isEmpty ? colors.tintColor : Color(colors.textLowEmphasis))
+            .foregroundColor(shouldShowReads ? colors.tintColor : Color(colors.textLowEmphasis))
             .frame(height: 16)
+            .opacity(localState == .sendingFailed || localState == .syncingFailed ? 0.0 : 1)
             .accessibilityLabel(
                 Text(
                     readUsers.isEmpty ? L10n.Message.ReadStatus.seenByNoOne : L10n.Message.ReadStatus.seenByOthers
@@ -136,7 +142,15 @@ public struct MessageReadIndicatorView: View {
     }
     
     private var image: UIImage {
-        !readUsers.isEmpty ? images.readByAll : (localState == .pendingSend ? images.messageReceiptSending : images.messageSent)
+        shouldShowReads || showDelivered ? images.readByAll : (isMessageSending ? images.messageReceiptSending : images.messageSent)
+    }
+
+    private var isMessageSending: Bool {
+        localState == .sending || localState == .pendingSend || localState == .syncing
+    }
+
+    private var shouldShowReads: Bool {
+        !readUsers.isEmpty && !isMessageSending
     }
 }
 
@@ -153,7 +167,6 @@ struct MessageSpacer: View {
 
 /// View that's displayed when a message is pinned.
 public struct MessagePinDetailsView: View {
-    
     @Injected(\.colors) private var colors
     @Injected(\.images) private var images
     @Injected(\.fonts) private var fonts
@@ -184,7 +197,6 @@ public struct MessagePinDetailsView: View {
 }
 
 public struct TopLeftView<Content: View>: View {
-    
     var content: () -> Content
     
     public init(content: @escaping () -> Content) {
@@ -203,7 +215,6 @@ public struct TopLeftView<Content: View>: View {
 }
 
 extension View {
-    
     public func textColor(for message: ChatMessage) -> Color {
         @Injected(\.colors) var colors
         

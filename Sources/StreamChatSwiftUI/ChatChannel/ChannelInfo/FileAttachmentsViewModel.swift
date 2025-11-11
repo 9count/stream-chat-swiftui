@@ -8,7 +8,6 @@ import SwiftUI
 
 /// View model for the `FileAttachmentsView`.
 class FileAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDelegate {
-    
     @Published var loading = false
     @Published var attachmentsDataSource = [MonthlyFileAttachments]()
     @Published var selectedAttachment: ChatMessageFileAttachment?
@@ -90,16 +89,16 @@ class FileAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDel
         loading = true
         messageSearchController.search(query: query, completion: { [weak self] _ in
             guard let self = self else { return }
-            self.updateAttachments()
+            withAnimation {
+                self.updateAttachments()
+            }
             self.loading = false
         })
     }
 
     private func updateAttachments() {
         let messages = messageSearchController.messages
-        withAnimation {
-            self.attachmentsDataSource = self.loadAttachments(from: messages)
-        }
+        attachmentsDataSource = loadAttachments(from: messages)
     }
 
     private func loadAttachments(from messages: LazyCachedMapCollection<ChatMessage>) -> [MonthlyFileAttachments] {

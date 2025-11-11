@@ -11,7 +11,6 @@ import SwiftUI
 import XCTest
 
 class MediaAttachmentsView_Tests: StreamChatTestCase {
-
     func test_mediaAttachmentsView_notEmptySnapshot() {
         // Given
         let messages = ChannelInfoMockUtils.generateMessagesWithAttachments(
@@ -54,6 +53,29 @@ class MediaAttachmentsView_Tests: StreamChatTestCase {
         // When
         let view = MediaAttachmentsView(viewModel: viewModel)
             .applyDefaultSize()
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_mediaAttachmentsView_themedSnapshot() {
+        // Given
+        setThemedNavigationBarAppearance()
+        let messages = ChannelInfoMockUtils.generateMessagesWithAttachments(
+            withImages: 10,
+            withVideos: 5
+        )
+        let messageSearchController = ChatMessageSearchController_Mock.mock(client: chatClient)
+        messageSearchController.messages_mock = messages
+        let viewModel = MediaAttachmentsViewModel(
+            channel: .mockDMChannel(),
+            messageSearchController: messageSearchController
+        )
+
+        // When
+        let view = NavigationContainerView(embedInNavigationView: true) {
+            MediaAttachmentsView(viewModel: viewModel)
+        }.applyDefaultSize()
 
         // Then
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))

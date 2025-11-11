@@ -7,7 +7,6 @@ import SwiftUI
 
 /// View displaying the search results in the channel list.
 public struct SearchResultsView<Factory: ViewFactory>: View {
-
     @Injected(\.colors) private var colors
 
     var factory: Factory
@@ -84,7 +83,6 @@ public struct SearchResultsView<Factory: ViewFactory>: View {
 
 /// View for one search result item with navigation support.
 struct SearchResultView<Factory: ViewFactory>: View {
-
     var factory: Factory
     @Binding var selectedChannel: ChannelSelectionInfo?
     var searchResult: ChannelSelectionInfo
@@ -113,13 +111,13 @@ struct SearchResultView<Factory: ViewFactory>: View {
             } label: {
                 EmptyView()
             }
+            .opacity(0) // Fixes showing accessibility button shape
         }
     }
 }
 
 /// The search result item user interface.
 struct SearchResultItem<Factory: ViewFactory, ChannelDestination: View>: View {
-
     @Injected(\.utils) private var utils
 
     var factory: Factory
@@ -157,7 +155,10 @@ struct SearchResultItem<Factory: ViewFactory, ChannelDestination: View>: View {
 
     private var timestampText: String {
         if let lastMessageAt = searchResult.channel.lastMessageAt {
-            return utils.dateFormatter.string(from: lastMessageAt)
+            let formatter = utils.channelListConfig.messageRelativeDateFormatEnabled ?
+                utils.messageRelativeDateFormatter :
+                utils.dateFormatter
+            return formatter.string(from: lastMessageAt)
         } else {
             return ""
         }

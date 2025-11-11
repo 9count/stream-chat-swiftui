@@ -79,7 +79,6 @@ public struct ChatChannelListView<Factory: ViewFactory>: View {
             content()
         }
         .overlay(viewModel.customAlertShown ? customViewOverlay() : nil)
-        .accentColor(colors.tintColor)
         .if(isIphone || !utils.messageListConfig.iPadSplitViewEnabled, transform: { view in
             view.navigationViewStyle(.stack)
         })
@@ -186,7 +185,6 @@ extension ChatChannelListView where Factory == DefaultViewFactory {
 }
 
 public struct ChatChannelListContentView<Factory: ViewFactory>: View {
-    
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     private var viewFactory: Factory
@@ -235,6 +233,7 @@ public struct ChatChannelListContentView<Factory: ViewFactory>: View {
                     channels: viewModel.channels,
                     selectedChannel: $viewModel.selectedChannel,
                     swipedChannelId: $viewModel.swipedChannelId,
+                    scrolledChannelId: $viewModel.scrolledChannelId,
                     onlineIndicatorShown: viewModel.onlineIndicatorShown(for:),
                     imageLoader: channelHeaderLoader.image(for:),
                     onItemTap: onItemTap,

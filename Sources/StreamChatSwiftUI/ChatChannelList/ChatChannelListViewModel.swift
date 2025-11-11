@@ -10,7 +10,6 @@ import UIKit
 
 /// View model for the `ChatChannelListView`.
 open class ChatChannelListViewModel: ObservableObject, ChatChannelListControllerDelegate, ChatMessageSearchControllerDelegate {
-    
     /// Context provided dependencies.
     @Injected(\.chatClient) private var chatClient: ChatClient
     @Injected(\.images) private var images: Images
@@ -40,6 +39,9 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
 
     /// Index of the selected channel.
     private var selectedChannelIndex: Int?
+    
+    /// When set, scrolls to the specified channel id (if it exists).
+    @Published public var scrolledChannelId: String?
 
     /// Published variables.
     @Published public var channels = LazyCachedMapCollection<ChatChannel>() {
@@ -181,6 +183,46 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
             }
         }
     }
+    
+    /// Opens the chat channel destination with the provided channel id.
+    ///
+    /// - Parameter channelId: the id of the channel that will be shown.
+    public func openChannel(with channelId: ChannelId) {
+        func loadUntilFound() {
+            guard let controller else { return }
+            if let channel = controller.channels.first(where: { $0.id == channelId.rawValue }) {
+                log.debug("Showing channel with id \(channelId)")
+                scrollToAndOpen(channel: channel)
+                return
+            }
+
+            // Stop if there are no more channels to load
+            if controller.hasLoadedAllPreviousChannels {
+                scrolledChannelId = nil
+                return
+            }
+
+            controller.loadNextChannels { [weak self] error in
+                if error != nil {
+                    self?.scrolledChannelId = nil
+                    return
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    loadUntilFound()
+                }
+            }
+        }
+        
+        if isSearching {
+            searchText = ""
+        }
+        
+        if selectedChannel != nil {
+            selectedChannel = nil
+        }
+
+        loadUntilFound()
+    }
 
     public func loadAdditionalSearchResults(index: Int) {
         switch searchType {
@@ -202,7 +244,7 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
     }
 
     public func onDeleteTapped(channel: ChatChannel) {
-        channelAlertType = .deleteChannel(channel)
+        setChannelAlertType(.deleteChannel(channel))
     }
 
     public func onMoreTapped(channel: ChatChannel) {
@@ -217,13 +259,17 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
         controller.deleteChannel { [weak self] error in
             if error != nil {
                 // handle error
-                self?.channelAlertType = .error
+                self?.setChannelAlertType(.error)
             }
         }
     }
 
     open func showErrorPopup(_ error: Error?) {
-        channelAlertType = .error
+        setChannelAlertType(.error)
+    }
+    
+    open func setChannelAlertType(_ channelAlertType: ChannelAlertType) {
+        self.channelAlertType = channelAlertType
     }
 
     // MARK: - ChatChannelListControllerDelegate
@@ -328,7 +374,7 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
             self.loading = false
             if error != nil {
                 // handle error
-                self.channelAlertType = .error
+                self.setChannelAlertType(.error)
             } else {
                 // access channels
                 self.updateChannels()
@@ -539,6 +585,14 @@ open class ChatChannelListViewModel: ObservableObject, ChatChannelListController
         }
         markDirty = true
         channels = LazyCachedMapCollection(source: temp, map: { $0 })
+    }
+    
+    private func scrollToAndOpen(channel: ChatChannel) {
+        scrolledChannelId = channel.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.selectedChannel = .init(channel: channel, message: nil)
+            self?.scrolledChannelId = nil
+        }
     }
 
     private func observeChannelDismiss() {

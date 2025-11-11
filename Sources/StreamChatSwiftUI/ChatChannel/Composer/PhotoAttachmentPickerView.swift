@@ -7,7 +7,6 @@ import SwiftUI
 
 /// View for the photo attachment picker.
 public struct PhotoAttachmentPickerView: View {
-    
     @Injected(\.colors) private var colors
     
     @StateObject var assetLoader = PhotoAssetLoader()
@@ -96,8 +95,9 @@ public struct PhotoAttachmentCell: View {
                         
                         // Needed because of SwiftUI bug with tap area of Image.
                         Rectangle()
-                            .opacity(0.000001)
+                            .fill(.clear)
                             .frame(width: reader.size.width, height: reader.size.height)
+                            .contentShape(.rect)
                             .clipped()
                             .allowsHitTesting(true)
                             .onTapGesture {
@@ -185,7 +185,7 @@ public struct PhotoAttachmentCell: View {
                 }
             }
         }
-        .onDisappear() {
+        .onDisappear {
             if let requestId = requestId {
                 asset.cancelContentEditingInputRequest(requestId)
                 self.requestId = nil

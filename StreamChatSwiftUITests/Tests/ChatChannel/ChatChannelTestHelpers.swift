@@ -8,7 +8,6 @@
 import XCTest
 
 class ChatChannelTestHelpers {
-
     static func makeChannelController(
         chatClient: ChatClient,
         chatChannel: ChatChannel? = nil,
@@ -18,7 +17,7 @@ class ChatChannelTestHelpers {
         let config = ChannelConfig(commands: [Command(name: "giphy", description: "", set: "", args: "")])
         let channel = chatChannel ?? ChatChannel.mockDMChannel(
             config: config,
-            ownCapabilities: [.uploadFile],
+            ownCapabilities: [.sendMessage, .uploadFile],
             lastActiveWatchers: lastActiveWatchers
         )
         let channelQuery = ChannelQuery(cid: channel.cid)
@@ -42,8 +41,9 @@ class ChatChannelTestHelpers {
         channelController.simulateInitial(channel: channel, messages: channelMessages, state: .initialized)
         return channelController
     }
-
-    static let testURL = URL(string: "https://vignette.wikia.nocookie.net/starwars/images/2/20/LukeTLJ.jpg")!
+    
+    static let testURL = URL.localYodaImage
+    static let testFileURL = URL.localYodaQuote
 
     static var imageAttachments: [AnyChatMessageAttachment] = {
         let attachmentFile = AttachmentFile(type: .png, size: 0, mimeType: "image/png")
@@ -69,6 +69,27 @@ class ChatChannelTestHelpers {
 
         return imageAttachments
     }()
+
+    static func imageAttachment(state: LocalAttachmentState) -> AnyChatMessageAttachment {
+        let attachmentFile = AttachmentFile(type: .png, size: 0, mimeType: "image/png")
+        let uploadingState = AttachmentUploadingState(
+            localFileURL: testURL,
+            state: state,
+            file: attachmentFile
+        )
+        return ChatMessageImageAttachment(
+            id: .unique,
+            type: .image,
+            payload: ImageAttachmentPayload(
+                title: "test",
+                imageRemoteURL: testURL,
+                extraData: [:]
+            ),
+            downloadingState: nil,
+            uploadingState: uploadingState
+        )
+        .asAnyAttachment
+    }
 
     static var giphyAttachments: [AnyChatMessageAttachment] = {
         let attachmentFile = AttachmentFile(type: .gif, size: 0, mimeType: "image/gif")
@@ -199,14 +220,36 @@ class ChatChannelTestHelpers {
 
         return fileAttachments
     }
-    
+
+    static var pdfFileAttachments: [AnyChatMessageAttachment] {
+        let attachmentFile = AttachmentFile(type: .generic, size: 0, mimeType: "application/pdf")
+        let fileAttachments: [AnyChatMessageAttachment] = [
+            ChatMessageFileAttachment(
+                id: .unique,
+                type: .file,
+                payload:
+                FileAttachmentPayload(
+                    title: "test",
+                    assetRemoteURL: testURL,
+                    file: attachmentFile,
+                    extraData: nil
+                ),
+                downloadingState: nil,
+                uploadingState: nil
+            )
+            .asAnyAttachment
+        ]
+
+        return fileAttachments
+    }
+
     static func voiceRecordingAttachments(count: Int) -> [AnyChatMessageAttachment] {
         (0..<count).map { index in
             let title = index == 0 ? "Recording" : "Recording-\(index)"
             let payload = VoiceRecordingAttachmentPayload(
                 title: title,
-                voiceRecordingRemoteURL: .localYodaImage,
-                file: try! .init(url: .localYodaImage),
+                voiceRecordingRemoteURL: testURL,
+                file: try! .init(url: testFileURL),
                 duration: Double(index) + 5.0,
                 waveformData: [0, 0.1, 0.5, 1],
                 extraData: nil

@@ -8,7 +8,6 @@ import SwiftUI
 
 /// View model for the `MediaAttachmentsView`.
 class MediaAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDelegate {
-
     @Published var mediaItems = [MediaItem]()
     @Published var loading = false
     @Published var galleryShown = false
@@ -20,8 +19,8 @@ class MediaAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDe
 
     private var loadingNextMessages = false
 
-    var allImageAttachments: [ChatMessageImageAttachment] {
-        mediaItems.compactMap(\.imageAttachment)
+    var allMediaAttachments: [MediaAttachment] {
+        mediaItems.compactMap(\.mediaAttachment)
     }
 
     init(channel: ChatChannel) {
@@ -84,7 +83,7 @@ class MediaAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDe
                 let mediaItem = MediaItem(
                     id: imageAttachment.id.rawValue,
                     isVideo: false,
-                    author: message.author,
+                    message: message,
                     videoAttachment: nil,
                     imageAttachment: imageAttachment
                 )
@@ -94,7 +93,7 @@ class MediaAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDe
                 let mediaItem = MediaItem(
                     id: videoAttachment.id.rawValue,
                     isVideo: true,
-                    author: message.author,
+                    message: message,
                     videoAttachment: videoAttachment,
                     imageAttachment: nil
                 )
@@ -107,11 +106,34 @@ class MediaAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDe
     }
 }
 
-struct MediaItem: Identifiable {
-    let id: String
-    let isVideo: Bool
-    let author: ChatUser
+public struct MediaItem: Identifiable {
+    public let id: String
+    public let isVideo: Bool
+    public let message: ChatMessage
 
-    var videoAttachment: ChatMessageVideoAttachment?
-    var imageAttachment: ChatMessageImageAttachment?
+    public var videoAttachment: ChatMessageVideoAttachment?
+    public var imageAttachment: ChatMessageImageAttachment?
+    
+    public init(
+        id: String,
+        isVideo: Bool,
+        message: ChatMessage,
+        videoAttachment: ChatMessageVideoAttachment?,
+        imageAttachment: ChatMessageImageAttachment?
+    ) {
+        self.id = id
+        self.isVideo = isVideo
+        self.message = message
+        self.videoAttachment = videoAttachment
+        self.imageAttachment = imageAttachment
+    }
+    
+    public var mediaAttachment: MediaAttachment? {
+        if let videoAttachment {
+            return MediaAttachment(url: videoAttachment.videoURL, type: .video)
+        } else if let imageAttachment {
+            return MediaAttachment(url: imageAttachment.imageURL, type: .image)
+        }
+        return nil
+    }
 }

@@ -10,7 +10,6 @@ import SwiftUI
 import XCTest
 
 class ChatChannelDataSource_Tests: StreamChatTestCase {
-
     private let message = ChatMessage.mock(
         id: .unique,
         cid: .unique,
@@ -166,11 +165,70 @@ class ChatChannelDataSource_Tests: StreamChatTestCase {
         XCTAssert(noMessagesCall == false)
         XCTAssert(messagesCall == true)
     }
+    
+    // MARK: - firstUnreadMessageId Tests
+    
+    func test_channelDataSource_firstUnreadMessageId_whenControllerHasFirstUnreadMessageId() {
+        // Given
+        let firstUnreadMessageId = "first-unread-message-id"
+        let controller = makeChannelController(messages: [message])
+        controller.mockFirstUnreadMessageId = firstUnreadMessageId
+        let channelDataSource = ChatChannelDataSource(controller: controller)
+        
+        // When
+        let result = channelDataSource.firstUnreadMessageId
+        
+        // Then
+        XCTAssertEqual(result, firstUnreadMessageId)
+    }
+    
+    func test_channelDataSource_firstUnreadMessageId_whenNilAndCurrentUserHasRead() {
+        // Given
+        let currentUserId = chatClient.currentUserId!
+        let read = ChatChannelRead.mock(
+            lastReadAt: Date(),
+            lastReadMessageId: nil,
+            unreadMessagesCount: 0,
+            user: .mock(id: currentUserId)
+        )
+        let channel = ChatChannel.mockDMChannel(reads: [read])
+        let controller = makeChannelController(messages: [.mock(), .mock(), message])
+        controller.channel_mock = channel
+        controller.mockFirstUnreadMessageId = nil
+        let channelDataSource = ChatChannelDataSource(controller: controller)
+        
+        // When
+        let result = channelDataSource.firstUnreadMessageId
+        
+        // Then
+        XCTAssertEqual(result, message.id)
+    }
+    
+    func test_channelDataSource_firstUnreadMessageId_whenNilAndCurrentUserHasNotRead() {
+        // Given
+        let otherUserId = UserId.unique
+        let read = ChatChannelRead.mock(
+            lastReadAt: Date(),
+            lastReadMessageId: nil,
+            unreadMessagesCount: 0,
+            user: .mock(id: otherUserId)
+        )
+        let channel = ChatChannel.mockDMChannel(reads: [read])
+        let controller = makeChannelController(messages: [message])
+        controller.channel_mock = channel
+        controller.mockFirstUnreadMessageId = .unique
+        let channelDataSource = ChatChannelDataSource(controller: controller)
+        
+        // When
+        let result = channelDataSource.firstUnreadMessageId
+        
+        // Then
+        XCTAssertNotEqual(result, message.id)
+    }
 
     // MARK: - private
 
     private class MockMessagesDataSourceHandler: MessagesDataSource {
-
         var updateMessagesCalled = false
         var updateChannelCalled = false
 

@@ -7,7 +7,6 @@
 import XCTest
 
 class MessageActionsViewModel_Tests: StreamChatTestCase {
-
     func test_messageActionsViewModel_confirmationAlertShown() {
         // Given
         let utils = Utils(messageListConfig: .init(userBlockingEnabled: true))
@@ -20,7 +19,7 @@ class MessageActionsViewModel_Tests: StreamChatTestCase {
                 text: "test",
                 author: .mock(id: .unique)
             ),
-            channel: .mockDMChannel(ownCapabilities: [.sendMessage, .uploadFile, .pinMessage]),
+            channel: .mockDMChannel(ownCapabilities: [.sendMessage, .uploadFile, .pinMessage, .readEvents]),
             chatClient: chatClient,
             onFinish: { _ in },
             onError: { _ in }

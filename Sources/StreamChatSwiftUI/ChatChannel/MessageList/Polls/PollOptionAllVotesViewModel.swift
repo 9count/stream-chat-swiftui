@@ -7,11 +7,10 @@ import StreamChat
 import SwiftUI
 
 class PollOptionAllVotesViewModel: ObservableObject, PollVoteListControllerDelegate {
-    
-    let poll: Poll
     let option: PollOption
     let controller: PollVoteListController
-    
+
+    @Published var poll: Poll
     @Published var pollVotes = [PollVote]()
     @Published var errorShown = false
     
@@ -71,7 +70,11 @@ class PollOptionAllVotesViewModel: ObservableObject, PollVoteListControllerDeleg
             pollVotes = Array(controller.votes)
         }
     }
-    
+
+    func controller(_ controller: PollVoteListController, didUpdatePoll poll: Poll) {
+        self.poll = poll
+    }
+
     private func loadVotes() {
         loadingVotes = true
 

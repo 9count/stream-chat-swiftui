@@ -9,7 +9,6 @@ import Combine
 import XCTest
 
 class MediaAttachmentsViewModel_Tests: StreamChatTestCase {
-
     private var cancellables = Set<AnyCancellable>()
 
     func test_mediaAttachmentsViewModel_attachments() {
@@ -28,7 +27,7 @@ class MediaAttachmentsViewModel_Tests: StreamChatTestCase {
 
         // When
         let mediaItems = viewModel.mediaItems
-        let imageAttachments = viewModel.allImageAttachments
+        let imageAttachments = viewModel.allMediaAttachments.filter { $0.type == .image }
 
         // Then
         XCTAssert(mediaItems.count == 8)

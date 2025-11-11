@@ -9,7 +9,6 @@ import StreamSwiftTestHelpers
 import XCTest
 
 class MessageReadIndicatorView_Tests: StreamChatTestCase {
-
     func test_messageReadIndicatorView_snapshotMessageSent() {
         // Given
         let view = MessageReadIndicatorView(
@@ -55,6 +54,97 @@ class MessageReadIndicatorView_Tests: StreamChatTestCase {
         )
         .frame(width: 50, height: 16)
      
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
+    func test_messageReadIndicatorView_snapshotSending() {
+        // Given
+        let view = MessageReadIndicatorView(
+            readUsers: [],
+            showReadCount: false,
+            localState: .sending
+        )
+        .frame(width: 50, height: 16)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
+    func test_messageReadIndicatorView_snapshotSyncing() {
+        // Given
+        let view = MessageReadIndicatorView(
+            readUsers: [],
+            showReadCount: false,
+            localState: .syncing
+        )
+        .frame(width: 50, height: 16)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
+    func test_messageReadIndicatorView_snapshotSyncing_whenShowReadCount() {
+        // Given
+        let view = MessageReadIndicatorView(
+            readUsers: [.mock(id: .unique)],
+            showReadCount: true,
+            localState: .syncing
+        )
+        .frame(width: 50, height: 16)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
+    func test_messageReadIndicatorView_snapshotMessageFailed() {
+        // Given
+        let view = MessageReadIndicatorView(
+            readUsers: [],
+            showReadCount: false,
+            localState: .sendingFailed
+        )
+        .frame(width: 50, height: 16)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
+    func test_messageReadIndicatorView_snapshotMessageEditingFailed() {
+        // Given
+        let view = MessageReadIndicatorView(
+            readUsers: [],
+            showReadCount: false,
+            localState: .syncingFailed
+        )
+        .frame(width: 50, height: 16)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_messageReadIndicatorView_snapshotMessageDelivered() {
+        // Given
+        let view = MessageReadIndicatorView(
+            readUsers: [],
+            showReadCount: false,
+            showDelivered: true
+        )
+        .frame(width: 50, height: 16)
+        
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_messageReadIndicatorView_snapshotMessageDeliveredAndRead() {
+        // Given
+        let view = MessageReadIndicatorView(
+            readUsers: [.mock(id: .unique), .mock(id: .unique)],
+            showReadCount: true,
+            showDelivered: true
+        )
+        .frame(width: 50, height: 16)
+        
         // Then
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
     }

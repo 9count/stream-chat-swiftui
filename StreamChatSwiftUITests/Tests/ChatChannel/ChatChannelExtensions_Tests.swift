@@ -7,7 +7,6 @@
 import XCTest
 
 class ChatChannelExtensions_Tests: StreamChatTestCase {
-
     func test_typingIndicatorString_unknownValue() {
         // Given
         let channel = ChatChannel.mockDMChannel()
@@ -61,7 +60,14 @@ class ChatChannelExtensions_Tests: StreamChatTestCase {
         // Given
         let user = ChatUser.mock(id: .unique)
         let messages = [ChatMessage.mock(id: .unique, cid: .unique, text: "Test", author: ChatUser.mock(id: .unique))]
-        let read = ChatChannelRead(lastReadAt: Date(), lastReadMessageId: nil, unreadMessagesCount: 0, user: user)
+        let read = ChatChannelRead(
+            lastReadAt: Date(),
+            lastReadMessageId: nil,
+            unreadMessagesCount: 0,
+            user: user,
+            lastDeliveredAt: nil,
+            lastDeliveredMessageId: nil
+        )
         let channel = ChatChannel.mockDMChannel(reads: [read], latestMessages: messages)
 
         // When

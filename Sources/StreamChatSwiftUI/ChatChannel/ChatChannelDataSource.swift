@@ -6,7 +6,6 @@ import StreamChat
 
 /// Data source providing the chat messages.
 protocol MessagesDataSource: AnyObject {
-
     /// Called when the messages are updated.
     ///
     /// - Parameters:
@@ -32,7 +31,6 @@ protocol MessagesDataSource: AnyObject {
 
 /// The data source for the channel.
 protocol ChannelDataSource: AnyObject {
-
     /// Delegate implementing the `MessagesDataSource`.
     var delegate: MessagesDataSource? { get set }
 
@@ -81,7 +79,6 @@ protocol ChannelDataSource: AnyObject {
 
 /// Implementation of `ChannelDataSource`. Loads the messages of the channel.
 class ChatChannelDataSource: ChannelDataSource, ChatChannelControllerDelegate {
-
     let controller: ChatChannelController
     weak var delegate: MessagesDataSource?
     
@@ -94,7 +91,17 @@ class ChatChannelDataSource: ChannelDataSource, ChatChannelControllerDelegate {
     }
     
     var firstUnreadMessageId: String? {
-        controller.firstUnreadMessageId
+        if controller.firstUnreadMessageId == nil && controller.lastReadMessageId == nil {
+            let currentUserReadHasRead = controller.channel?.reads.first(where: {
+                $0.user.id == controller.client.currentUserId
+            }) != nil
+            // If the current user has unread state but no unread message is available
+            // it means the whole channel is unread, so the first message is the unread message.
+            if currentUserReadHasRead {
+                return controller.messages.last?.id
+            }
+        }
+        return controller.firstUnreadMessageId
     }
 
     init(controller: ChatChannelController) {
@@ -154,7 +161,6 @@ class ChatChannelDataSource: ChannelDataSource, ChatChannelControllerDelegate {
 
 /// Implementation of the `ChannelDataSource`. Loads the messages in a reply thread.
 class MessageThreadDataSource: ChannelDataSource, ChatMessageControllerDelegate {
-
     let channelController: ChatChannelController
     let messageController: ChatMessageController
     

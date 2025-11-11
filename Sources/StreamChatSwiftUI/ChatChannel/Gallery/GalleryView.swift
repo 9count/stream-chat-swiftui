@@ -7,67 +7,67 @@ import StreamChat
 import SwiftUI
 
 /// View used for displaying image attachments in a gallery.
-public struct GalleryView: View {
-
+public struct GalleryView<Factory: ViewFactory>: View {
     @Environment(\.presentationMode) var presentationMode
 
     @Injected(\.colors) private var colors
     @Injected(\.fonts) private var fonts
     @Injected(\.images) private var images
+    @Injected(\.utils) private var utils
 
+    private let viewFactory: Factory
     var mediaAttachments: [MediaAttachment]
     var author: ChatUser
+    var message: ChatMessage?
     @Binding var isShown: Bool
     @State private var selected: Int
     @State private var loadedImages = [Int: UIImage]()
     @State private var gridShown = false
 
     public init(
+        viewFactory: Factory = DefaultViewFactory.shared,
         imageAttachments: [ChatMessageImageAttachment],
         author: ChatUser,
         isShown: Binding<Bool>,
-        selected: Int
+        selected: Int,
+        message: ChatMessage? = nil
     ) {
-        let mediaAttachments = imageAttachments.map { attachment in
-            let url: URL
-            if let state = attachment.uploadingState {
-                url = state.localFileURL
-            } else {
-                url = attachment.imageURL
-            }
-            return MediaAttachment(
-                url: url,
-                type: .image,
-                uploadingState: attachment.uploadingState
-            )
-        }
+        let mediaAttachments = imageAttachments.map { MediaAttachment(from: $0) }
         self.init(
+            viewFactory: viewFactory,
             mediaAttachments: mediaAttachments,
             author: author,
             isShown: isShown,
-            selected: selected
+            selected: selected,
+            message: message
         )
     }
     
-    init(
+    public init(
+        viewFactory: Factory = DefaultViewFactory.shared,
         mediaAttachments: [MediaAttachment],
         author: ChatUser,
         isShown: Binding<Bool>,
-        selected: Int
+        selected: Int,
+        message: ChatMessage? = nil
     ) {
+        self.viewFactory = viewFactory
         self.mediaAttachments = mediaAttachments
         self.author = author
         _isShown = isShown
         _selected = State(initialValue: selected)
+        self.message = message
     }
 
     public var body: some View {
         GeometryReader { reader in
             VStack {
-                GalleryHeaderView(
+                viewFactory.makeGalleryHeaderView(
                     title: author.name ?? "",
-                    subtitle: author.onlineText,
-                    isShown: $isShown
+                    subtitle: message.map {
+                        utils.galleryHeaderViewDateFormatter.string(from: $0.createdAt)
+                    } ?? author.onlineText,
+                    shown: $isShown
                 )
 
                 TabView(selection: $selected) {
@@ -135,8 +135,8 @@ public struct GalleryView: View {
                 .foregroundColor(Color(colors.text))
             }
             .sheet(isPresented: $gridShown) {
-                GridPhotosView(
-                    imageURLs: mediaAttachments.filter { $0.type == .image }.map(\.url),
+                GridMediaView(
+                    attachments: mediaAttachments,
                     isShown: $gridShown
                 )
             }
@@ -153,7 +153,6 @@ public struct GalleryView: View {
 }
 
 struct StreamVideoPlayer: View {
-
     @Injected(\.utils) private var utils
 
     private var fileCDN: FileCDN {
@@ -177,6 +176,10 @@ struct StreamVideoPlayer: View {
             }
         }
         .onAppear {
+            guard avPlayer == nil else {
+                avPlayer?.play()
+                return
+            }
             fileCDN.adjustedURL(for: url) { result in
                 switch result {
                 case let .success(url):
@@ -187,6 +190,9 @@ struct StreamVideoPlayer: View {
                     self.error = error
                 }
             }
+        }
+        .onDisappear {
+            avPlayer?.pause()
         }
     }
 }

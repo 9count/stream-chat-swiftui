@@ -27,10 +27,27 @@ jobs:
           APPSTORE_API_KEY: ${{ secrets.APPSTORE_API_KEY }}
         run: bundle exec fastlane publish_release --verbose
 
+  merge-main-to-develop:
+    name: Merge main to develop
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          token: ${{ secrets.ADMIN_API_TOKEN }}
+          fetch-depth: 0
+
+      - uses: ./.github/actions/ruby-cache
+
+      - run: bundle exec fastlane merge_main
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
+
       - uses: 8398a7/action-slack@v3
+        if: failure()
         with:
           status: ${{ job.status }}
-          text: "🎉 The new release has been shipped! 🚢\n\n⚠️ <!subteam^S030AAHLDLN>, don't forget to merge `main` back to `develop` from `localhost` using the command: `bundle exec fastlane merge_main`"
-          fields: repo
+          text: "⚠️ <!subteam^S030AAHLDLN>, the merge of `main` to `develop` failed on CI. Consider using this command locally: `bundle exec fastlane merge_main`"
+          fields: repo,commit,author,workflow
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

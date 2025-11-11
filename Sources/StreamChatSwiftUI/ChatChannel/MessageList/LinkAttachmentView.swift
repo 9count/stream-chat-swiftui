@@ -14,6 +14,7 @@ public struct LinkAttachmentContainer<Factory: ViewFactory>: View {
     var message: ChatMessage
     var width: CGFloat
     var isFirst: Bool
+    var onImageTap: ((ChatMessageLinkAttachment) -> Void)?
     @Binding var scrolledId: String?
 
     private let padding: CGFloat = 8
@@ -23,12 +24,14 @@ public struct LinkAttachmentContainer<Factory: ViewFactory>: View {
         message: ChatMessage,
         width: CGFloat,
         isFirst: Bool,
-        scrolledId: Binding<String?>
+        scrolledId: Binding<String?>,
+        onImageTap: ((ChatMessageLinkAttachment) -> Void)? = nil
     ) {
         self.factory = factory
         self.message = message
         self.width = width
         self.isFirst = isFirst
+        self.onImageTap = onImageTap
         _scrolledId = scrolledId
     }
 
@@ -46,16 +49,16 @@ public struct LinkAttachmentContainer<Factory: ViewFactory>: View {
                 )
             }
 
-            let availableWidth = width - 4 * padding
-            let size = message.adjustedText.frameSize(maxWidth: availableWidth)
-            
             if #available(iOS 15, *) {
                 HStack {
-                    StreamTextView(message: message)
+                    factory.makeAttachmentTextView(options: .init(mesage: message))
                         .standardPadding()
                     Spacer()
                 }
+                .layoutPriority(1)
             } else {
+                let availableWidth = width - 4 * padding
+                let size = message.adjustedText.frameSize(maxWidth: availableWidth)
                 LinkTextView(
                     message: message,
                     width: availableWidth,
@@ -69,7 +72,8 @@ public struct LinkAttachmentContainer<Factory: ViewFactory>: View {
                 LinkAttachmentView(
                     linkAttachment: message.linkAttachments[0],
                     width: width,
-                    isFirst: isFirst
+                    isFirst: isFirst,
+                    onImageTap: onImageTap
                 )
             }
         }
@@ -97,11 +101,18 @@ public struct LinkAttachmentView: View {
     var linkAttachment: ChatMessageLinkAttachment
     var width: CGFloat
     var isFirst: Bool
-    
-    public init(linkAttachment: ChatMessageLinkAttachment, width: CGFloat, isFirst: Bool) {
+    var onImageTap: ((ChatMessageLinkAttachment) -> Void)?
+
+    public init(
+        linkAttachment: ChatMessageLinkAttachment,
+        width: CGFloat,
+        isFirst: Bool,
+        onImageTap: ((ChatMessageLinkAttachment) -> Void)? = nil
+    ) {
         self.linkAttachment = linkAttachment
         self.width = width
         self.isFirst = isFirst
+        self.onImageTap = onImageTap
     }
 
     public var body: some View {
@@ -118,7 +129,7 @@ public struct LinkAttachmentView: View {
                     if !authorHidden {
                         BottomLeftView {
                             Text(linkAttachment.author ?? "")
-                                .foregroundColor(colors.tintColor)
+                                .foregroundColor(colors.messageLinkAttachmentAuthorColor)
                                 .font(fonts.bodyBold)
                                 .standardPadding()
                                 .bubble(
@@ -135,12 +146,14 @@ public struct LinkAttachmentView: View {
                 if let title = linkAttachment.title {
                     Text(title)
                         .font(fonts.footnoteBold)
+                        .foregroundColor(colors.messageLinkAttachmentTitleColor)
                         .lineLimit(1)
                 }
 
                 if let description = linkAttachment.text {
                     Text(description)
                         .font(fonts.footnote)
+                        .foregroundColor(colors.messageLinkAttachmentTextColor)
                         .lineLimit(3)
                 }
             }
@@ -149,6 +162,10 @@ public struct LinkAttachmentView: View {
         }
         .padding(.horizontal, padding)
         .onTapGesture {
+            if let onImageTap {
+                onImageTap(linkAttachment)
+                return
+            }
             if let url = linkAttachment.originalURL.secureURL, UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url, options: [:])
             }

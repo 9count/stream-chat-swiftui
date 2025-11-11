@@ -9,7 +9,6 @@ import SwiftUI
 import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-
     var streamChat: StreamChat?
 
     var chatClient: ChatClient = {
@@ -63,14 +62,20 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         #endif
 
         let utils = Utils(
+            channelListConfig: ChannelListConfig(
+                messageRelativeDateFormatEnabled: true,
+                channelItemMutedStyle: .afterChannelName
+            ),
             messageListConfig: MessageListConfig(
+                messageDisplayOptions: .init(showOriginalTranslatedButton: true),
                 dateIndicatorPlacement: .messageList,
                 userBlockingEnabled: true,
                 bouncedMessagesAlertActionsEnabled: true,
                 skipEditedMessageLabel: { message in
                     message.extraData["ai_generated"]?.boolValue == true
                 },
-                draftMessagesEnabled: true
+                draftMessagesEnabled: true,
+                downloadFileAttachmentsEnabled: true
             ),
             composerConfig: ComposerConfig(isVoiceRecordingEnabled: true)
         )

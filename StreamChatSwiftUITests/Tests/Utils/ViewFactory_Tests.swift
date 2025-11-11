@@ -9,7 +9,6 @@ import SwiftUI
 import XCTest
 
 class ViewFactory_Tests: StreamChatTestCase {
-
     private let message = ChatMessage.mock(
         id: .unique,
         cid: .unique,
@@ -134,7 +133,7 @@ class ViewFactory_Tests: StreamChatTestCase {
         let view = viewFactory.makeMessageAvatarView(for: userInfo)
 
         // Then
-        XCTAssert(view is MessageAvatarView)
+        XCTAssert(view is MessageAvatarView<MessageAvatarDefaultPlaceholderView>)
     }
 
     func test_viewFactory_makeQuotedMessageAvatarView() {
@@ -154,7 +153,7 @@ class ViewFactory_Tests: StreamChatTestCase {
         )
 
         // Then
-        XCTAssert(view is MessageAvatarView)
+        XCTAssert(view is MessageAvatarView<MessageAvatarDefaultPlaceholderView>)
     }
 
     func test_viewFactory_makeChannelHeaderViewModifier() {
@@ -968,10 +967,96 @@ class ViewFactory_Tests: StreamChatTestCase {
         // Then
         XCTAssert(view is ChannelAvatarView)
     }
+    
+    func test_viewFactory_makeGalleryView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeGalleryView(
+            mediaAttachments: [],
+            message: .mock(),
+            isShown: .constant(true),
+            options: .init(selectedIndex: 0)
+        )
+            
+        // Then
+        XCTAssert(view is GalleryView<DefaultViewFactory>)
+    }
+    
+    func test_viewFactory_makeGalleryHeaderView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeGalleryHeaderView(
+            title: .unique,
+            subtitle: .unique,
+            shown: .constant(true)
+        )
+            
+        // Then
+        XCTAssert(view is GalleryHeaderView)
+    }
+    
+    func test_viewFactory_makeVideoPlayerView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeVideoPlayerView(
+            attachment: .mock(id: .unique),
+            message: .mock(),
+            isShown: .constant(true),
+            options: .init(selectedIndex: 0)
+        )
+            
+        // Then
+        XCTAssert(view is VideoPlayerView<DefaultViewFactory>)
+    }
+    
+    func test_viewFactory_makeVideoPlayerHeaderView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeVideoPlayerHeaderView(
+            title: .unique,
+            subtitle: .unique,
+            shown: .constant(true)
+        )
+            
+        // Then
+        XCTAssert(view is GalleryHeaderView)
+    }
+    
+    func test_viewFactory_makeAddUsersView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeAddUsersView(
+            options: .init(loadedUsers: []),
+            onUserTap: { _ in }
+        )
+        
+        // Then
+        XCTAssert(view is AddUsersView<DefaultViewFactory>)
+    }
+
+    func test_viewFactory_makeAttachmentTextView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeAttachmentTextView(options: .init(mesage: message))
+        
+        // Then
+        XCTAssert(view is StreamTextView)
+    }
 }
 
 extension ChannelAction: Equatable {
-
     public static func == (lhs: ChannelAction, rhs: ChannelAction) -> Bool {
         lhs.id == rhs.id
     }

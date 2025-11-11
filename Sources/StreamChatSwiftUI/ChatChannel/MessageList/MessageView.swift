@@ -167,7 +167,7 @@ public struct MessageTextView<Factory: ViewFactory>: View {
                 )
             }
 
-            StreamTextView(message: message)
+            factory.makeAttachmentTextView(options: .init(mesage: message))
                 .padding(.leading, leadingPadding)
                 .padding(.trailing, trailingPadding)
                 .padding(.top, topPadding)
@@ -226,7 +226,6 @@ public struct EmojiTextView<Factory: ViewFactory>: View {
 }
 
 struct StreamTextView: View {
-    
     @Injected(\.fonts) var fonts
     
     let message: ChatMessage
@@ -248,57 +247,59 @@ struct StreamTextView: View {
     }
 }
 
+// Options for the attachment text view.
+public class AttachmentTextViewOptions {
+    // The message to display the text for.
+    public let message: ChatMessage
+    
+    public init(mesage: ChatMessage) {
+        self.message = mesage
+    }
+}
+
 @available(iOS 15, *)
 public struct LinkDetectionTextView: View {
     @Environment(\.layoutDirection) var layoutDirection
     @Environment(\.channelTranslationLanguage) var translationLanguage
-    
+    @Environment(\.messageViewModel) var messageViewModel
+
     @Injected(\.colors) var colors
     @Injected(\.fonts) var fonts
     @Injected(\.utils) var utils
     
     var message: ChatMessage
-    
-    var text: LocalizedStringKey {
-        LocalizedStringKey(message.adjustedText)
-    }
-    
-    @State var displayedText: AttributedString?
-    
+
+    // The translations store is used to detect changes so the textContent is re-rendered.
+    // The @Environment(\.messageViewModel) is not reactive like @EnvironmentObject.
+    // TODO: On v5 the TextView should be refactored and not depend directly on the view model.
+    @ObservedObject var originalTranslationsStore = InjectedValues[\.utils].originalTranslationsStore
+
+    @State var text: AttributedString?
     @State var linkDetector = TextLinkDetector()
-    
     @State var tintColor = InjectedValues[\.colors].tintColor
         
-    public init(message: ChatMessage) {
+    public init(
+        message: ChatMessage
+    ) {
         self.message = message
     }
     
     public var body: some View {
         Group {
-            if let displayedText {
-                Text(displayedText)
-            } else {
-                Text(message.adjustedText)
-            }
+            Text(text ?? displayText)
         }
         .foregroundColor(textColor(for: message))
         .font(fonts.body)
         .tint(tintColor)
-        .onAppear {
-            displayedText = attributedString(for: message)
+        .onChange(of: message) { message in
+            messageViewModel?.message = message
+            text = displayText
         }
-        .onChange(of: message, perform: { updated in
-            displayedText = attributedString(for: updated)
-        })
     }
     
-    private func attributedString(for message: ChatMessage) -> AttributedString {
-        var text = message.adjustedText
-        
-        // Translation
-        if let translatedText = message.textContent(for: translationLanguage) {
-            text = translatedText
-        }
+    var displayText: AttributedString {
+        let text = messageViewModel?.textContent ?? message.text
+
         // Markdown
         let attributes = AttributeContainer()
             .foregroundColor(textColor(for: message))

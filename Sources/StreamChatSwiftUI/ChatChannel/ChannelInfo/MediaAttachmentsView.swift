@@ -7,7 +7,8 @@ import SwiftUI
 
 /// View displaying media attachments.
 public struct MediaAttachmentsView<Factory: ViewFactory>: View {
-    
+    @Injected(\.colors) private var colors
+    @Injected(\.fonts) private var fonts
     @Injected(\.images) private var images
 
     @StateObject private var viewModel: MediaAttachmentsViewModel
@@ -55,22 +56,16 @@ public struct MediaAttachmentsView<Factory: ViewFactory>: View {
                         ForEach(0..<viewModel.mediaItems.count, id: \.self) { mediaItemIndex in
                             let mediaItem = viewModel.mediaItems[mediaItemIndex]
                             ZStack {
-                                if !mediaItem.isVideo, let imageAttachment = mediaItem.imageAttachment {
-                                    let index = viewModel.allImageAttachments.firstIndex { $0.id == imageAttachment.id } ?? 0
-                                    ImageAttachmentContentView(
+                                if let mediaAttachment = mediaItem.mediaAttachment {
+                                    let index = viewModel.allMediaAttachments.firstIndex { $0.id == mediaAttachment.id
+                                    } ?? 0
+                                    MediaAttachmentContentView(
+                                        factory: factory,
                                         mediaItem: mediaItem,
-                                        imageAttachment: imageAttachment,
-                                        allImageAttachments: viewModel.allImageAttachments,
+                                        mediaAttachment: mediaAttachment,
+                                        allMediaAttachments: viewModel.allMediaAttachments,
                                         itemWidth: Self.itemWidth,
                                         index: index
-                                    )
-                                } else if let videoAttachment = mediaItem.videoAttachment {
-                                    VideoAttachmentContentView(
-                                        attachment: videoAttachment,
-                                        author: mediaItem.author,
-                                        width: Self.itemWidth,
-                                        ratio: 1,
-                                        cornerRadius: 0
                                     )
                                 }
                             }
@@ -78,10 +73,11 @@ public struct MediaAttachmentsView<Factory: ViewFactory>: View {
                                 BottomRightView {
                                     factory.makeMessageAvatarView(
                                         for: UserDisplayInfo(
-                                            id: mediaItem.author.id,
-                                            name: mediaItem.author.name ?? "",
-                                            imageURL: mediaItem.author.imageURL,
-                                            size: .init(width: 24, height: 24)
+                                            id: mediaItem.message.author.id,
+                                            name: mediaItem.message.author.name ?? "",
+                                            imageURL: mediaItem.message.author.imageURL,
+                                            size: .init(width: 24, height: 24),
+                                            extraData: mediaItem.message.author.extraData
                                         )
                                     )
                                     .overlay(
@@ -104,26 +100,49 @@ public struct MediaAttachmentsView<Factory: ViewFactory>: View {
                 }
             }
         }
-        .navigationTitle(L10n.ChatInfo.Media.title)
+        .toolbarThemed {
+            ToolbarItem(placement: .principal) {
+                Text(L10n.ChatInfo.Media.title)
+                    .font(fonts.bodyBold)
+                    .foregroundColor(Color(colors.navigationBarTitle))
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-struct ImageAttachmentContentView: View {
-
+public struct MediaAttachmentContentView<Factory: ViewFactory>: View {
     @State private var galleryShown = false
 
+    let factory: Factory
     let mediaItem: MediaItem
-    let imageAttachment: ChatMessageImageAttachment
-    let allImageAttachments: [ChatMessageImageAttachment]
+    let mediaAttachment: MediaAttachment
+    let allMediaAttachments: [MediaAttachment]
     let itemWidth: CGFloat
     let index: Int
 
-    var body: some View {
+    public init(
+        factory: Factory,
+        mediaItem: MediaItem,
+        mediaAttachment: MediaAttachment,
+        allMediaAttachments: [MediaAttachment],
+        itemWidth: CGFloat,
+        index: Int
+    ) {
+        self.factory = factory
+        self.mediaItem = mediaItem
+        self.mediaAttachment = mediaAttachment
+        self.allMediaAttachments = allMediaAttachments
+        self.itemWidth = itemWidth
+        self.index = index
+    }
+
+    public var body: some View {
         Button {
             galleryShown = true
         } label: {
             LazyLoadingImage(
-                source: MediaAttachment(url: imageAttachment.imageURL, type: .image),
+                source: mediaAttachment,
                 width: itemWidth,
                 height: itemWidth
             )
@@ -134,11 +153,11 @@ struct ImageAttachmentContentView: View {
             .clipped()
         }
         .fullScreenCover(isPresented: $galleryShown) {
-            GalleryView(
-                imageAttachments: allImageAttachments,
-                author: mediaItem.author,
+            factory.makeGalleryView(
+                mediaAttachments: allMediaAttachments,
+                message: mediaItem.message,
                 isShown: $galleryShown,
-                selected: index
+                options: .init(selectedIndex: index)
             )
         }
     }
