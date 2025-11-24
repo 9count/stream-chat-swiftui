@@ -444,6 +444,11 @@ open class MessageComposerViewModel: ObservableObject {
         }
     }
     
+    /// A Boolean value indicating whether sending message is enabled.
+    public var isSendMessageEnabled: Bool {
+        channelController.channel?.canSendMessage ?? true
+    }
+
     public var sendButtonEnabled: Bool {
         if let composerCommand = composerCommand,
            let handler = commandsHandler.commandHandler(for: composerCommand) {
@@ -901,14 +906,6 @@ extension MessageComposerViewModel: EventsControllerDelegate {
             let isFromSameChannel = channelController.cid == event.cid && messageController == nil
             if isFromSameThread || isFromSameChannel {
                 fillDraftMessage()
-            }
-        }
-
-        if let event = event as? DraftDeletedEvent {
-            let isFromSameThread = messageController?.messageId == event.threadId
-            let isFromSameChannel = channelController.cid == event.cid && messageController == nil
-            if isFromSameThread || isFromSameChannel {
-                clearInputData()
             }
         }
     }

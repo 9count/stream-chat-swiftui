@@ -5,6 +5,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 🔄 Changed
 
+# [4.92.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.92.0)
+_November 07, 2025_
+
+### ✅ Added
+- Add message highlighting on jumping to a quoted message [#1032](https://github.com/GetStream/stream-chat-swiftui/pull/1032)
+- Display double grey checkmark when delivery events are enabled [#1038](https://github.com/GetStream/stream-chat-swiftui/pull/1038)
+
+### 🐞 Fixed
+- Fix composer deleting newly entered text after deleting draft text [#1030](https://github.com/GetStream/stream-chat-swiftui/pull/1030)
+- Fix mark unread action not shown for messages that are root of a thread in the channel view [#1041](https://github.com/GetStream/stream-chat-swiftui/pull/1041)
+
+# [4.91.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.91.0)
+_October 22, 2025_
+
+### ✅ Added
+- Add the `makeAttachmentTextView` method to ViewFactory [#1013](https://github.com/GetStream/stream-chat-swiftui/pull/1013)
+- Allow dismissing commands overlay when tapping the message list [#1024](https://github.com/GetStream/stream-chat-swiftui/pull/1024)
+- Allows dismissing the keyboard attachments picker when tapping the message list [#1024](https://github.com/GetStream/stream-chat-swiftui/pull/1024)
+### 🐞 Fixed
+- Fix composer not being locked after the channel was frozen [#1015](https://github.com/GetStream/stream-chat-swiftui/pull/1015)
+- Fix `PollOptionAllVotesView` not updated on poll cast events [#1025](https://github.com/GetStream/stream-chat-swiftui/pull/1025)
+- Fix action sheet not showing when discarding Poll creation on iOS 26 [#1027](https://github.com/GetStream/stream-chat-swiftui/pull/1027)
+
 # [4.90.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.90.0)
 _October 08, 2025_
 

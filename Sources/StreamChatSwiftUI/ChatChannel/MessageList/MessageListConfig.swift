@@ -26,6 +26,7 @@ public struct MessageListConfig {
         iPadSplitViewEnabled: Bool = true,
         scrollingAnchor: UnitPoint = .center,
         showNewMessagesSeparator: Bool = true,
+        highlightMessageWhenJumping: Bool = true,
         handleTabBarVisibility: Bool = true,
         messageListAlignment: MessageListAlignment = .standard,
         uniqueReactionsEnabled: Bool = false,
@@ -36,7 +37,9 @@ public struct MessageListConfig {
         bouncedMessagesAlertActionsEnabled: Bool = true,
         skipEditedMessageLabel: @escaping (ChatMessage) -> Bool = { _ in false },
         draftMessagesEnabled: Bool = false,
-        downloadFileAttachmentsEnabled: Bool = false
+        downloadFileAttachmentsEnabled: Bool = false,
+        hidesCommandsOverlayOnMessageListTap: Bool = true,
+        hidesAttachmentsPickersOnMessageListTap: Bool = true
     ) {
         self.messageListType = messageListType
         self.typingIndicatorPlacement = typingIndicatorPlacement
@@ -55,6 +58,7 @@ public struct MessageListConfig {
         self.iPadSplitViewEnabled = iPadSplitViewEnabled
         self.scrollingAnchor = scrollingAnchor
         self.showNewMessagesSeparator = showNewMessagesSeparator
+        self.highlightMessageWhenJumping = highlightMessageWhenJumping
         self.handleTabBarVisibility = handleTabBarVisibility
         self.messageListAlignment = messageListAlignment
         self.uniqueReactionsEnabled = uniqueReactionsEnabled
@@ -66,6 +70,8 @@ public struct MessageListConfig {
         self.skipEditedMessageLabel = skipEditedMessageLabel
         self.draftMessagesEnabled = draftMessagesEnabled
         self.downloadFileAttachmentsEnabled = downloadFileAttachmentsEnabled
+        self.hidesCommandsOverlayOnMessageListTap = hidesCommandsOverlayOnMessageListTap
+        self.hidesAttachmentsPickersOnMessageListTap = hidesAttachmentsPickersOnMessageListTap
     }
 
     public let messageListType: MessageListType
@@ -93,6 +99,16 @@ public struct MessageListConfig {
     public let markdownSupportEnabled: Bool
     public let userBlockingEnabled: Bool
 
+    /// A boolean to enable hiding the commands overlay when tapping the message list.
+    ///
+    /// It is enabled by default.
+    public let hidesCommandsOverlayOnMessageListTap: Bool
+
+    /// A boolean to enable hiding the attachments keyboard picker when tapping the message list.
+    ///
+    /// It is enabled by default.
+    public let hidesAttachmentsPickersOnMessageListTap: Bool
+
     /// A boolean to enable the alert actions for bounced messages.
     ///
     /// By default it is true and the bounced actions are displayed as an alert instead of a context menu.
@@ -107,6 +123,11 @@ public struct MessageListConfig {
 
     /// A boolean value that determines if download action is shown for file attachments.
     public let downloadFileAttachmentsEnabled: Bool
+
+    /// Highlights the message background when jumping to a message.
+    ///
+    /// By default it is enabled and it uses the color from `ColorPalette.messageCellHighlightBackground`.
+    public let highlightMessageWhenJumping: Bool
 }
 
 /// Contains information about the message paddings.
